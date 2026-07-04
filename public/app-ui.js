@@ -778,24 +778,115 @@ async function loadPickerItems() {
     renderPickerGrids();
     return;
   }
+  
+  // Try to load from serverless API first
+  let loadedFromServer = false;
   try {
-    const response = await fetch('http://localhost:5000/api/survey/items');
-    if (!response.ok) throw new Error('Không thể tải danh sách sản phẩm');
-    const items = await response.json();
-    state.surveyItems = items;
-    save();
-    renderPickerGrids();
-  } catch (err) {
-    console.error(err);
-    const placeholder = document.getElementById('picker-loading-placeholder');
-    if (placeholder) {
-      placeholder.innerHTML = `
-        <div style="color:#ef4444; padding:20px 0;">
-          <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem; margin-bottom:10px;"></i>
-          <h4>Không thể kết nối đến Flask backend</h4>
-          <p style="font-size:0.85rem; margin-top:5px; color:var(--gray-mid);">Hãy chắc chắn rằng Flask server (app.py) đang chạy ở cổng 5000 và đã được bật CORS.</p>
-        </div>
-      `;
+    console.log("[API] Attempting to load survey items from backend API...");
+    const API_BASE = window.location.origin; // Vercel relative path
+    const response = await fetch(`${API_BASE}/api/survey/items`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (response.ok) {
+      const items = await response.json();
+      if (Array.isArray(items) && items.length > 0) {
+        state.surveyItems = items;
+        state.surveyShownAsins = items.map(item => item.parent_asin);
+        save();
+        renderPickerGrids();
+        loadedFromServer = true;
+        console.log("[API] Loaded survey items from serverless backend successfully!");
+      }
+    }
+  } catch (apiErr) {
+    console.warn("[API] Serverless API call failed, falling back to static client-side mode.", apiErr);
+  }
+
+  // Fallback to static client-side mode
+  if (!loadedFromServer) {
+    try {
+      if (!window.allRecommendationData || window.allRecommendationData.length === 0) {
+        const response = await fetch('recommendation_data.json');
+        if (!response.ok) throw new Error('Không thể tải dữ liệu sản phẩm');
+        window.allRecommendationData = await response.json();
+      }
+
+      const categories = ["Áo Khoác", "Balo & Túi", "Áo Thun", "Quần", "Giày"];
+      const grouped = {};
+      categories.forEach(c => grouped[c] = []);
+      window.allRecommendationData.forEach(item => {
+        if (grouped[item.store]) {
+          grouped[item.store].push(item);
+        }
+      });
+      
+      const finalItems = [];
+      categories.forEach(cat => {
+        const catItems = grouped[cat];
+        catItems.sort((a, b) => (b.rating_number || 0) - (a.rating_number || 0));
+        
+        const selected = [];
+        const seenColors = new Set();
+        const seenStyles = new Set();
+        
+        const parseFeatures = (item) => {
+          const feats = item.features || [];
+          const style = feats[1] || feats[0] || null;
+          const color = feats[2] || feats[0] || null;
+          return { style, color };
+        };
+        
+        for (const item of catItems) {
+          const { style, color } = parseFeatures(item);
+          if (style && color && !seenStyles.has(style) && !seenColors.has(color)) {
+            seenStyles.add(style);
+            seenColors.add(color);
+            selected.push(item);
+            if (selected.length >= 15) break;
+          }
+        }
+        
+        if (selected.length < 15) {
+          for (const item of catItems) {
+            if (selected.includes(item)) continue;
+            const { style, color } = parseFeatures(item);
+            if ((style && !seenStyles.has(style)) || (color && !seenColors.has(color))) {
+              if (style) seenStyles.add(style);
+              if (color) seenColors.add(color);
+              selected.push(item);
+              if (selected.length >= 15) break;
+            }
+          }
+        }
+        
+        if (selected.length < 15) {
+          for (const item of catItems) {
+            if (!selected.includes(item)) {
+              selected.push(item);
+              if (selected.length >= 15) break;
+            }
+          }
+        }
+        
+        finalItems.push(...selected);
+      });
+      
+      state.surveyItems = finalItems;
+      state.surveyShownAsins = finalItems.map(item => item.parent_asin);
+      save();
+      renderPickerGrids();
+    } catch (err) {
+      console.error(err);
+      const placeholder = document.getElementById('picker-loading-placeholder');
+      if (placeholder) {
+        placeholder.innerHTML = `
+          <div style="color:#ef4444; padding:20px 0;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem; margin-bottom:10px;"></i>
+            <h4>Không thể kết nối đến máy chủ dữ liệu</h4>
+            <p style="font-size:0.85rem; margin-top:5px; color:var(--gray-mid);">${err.message}</p>
+          </div>
+        `;
+      }
     }
   }
 }
@@ -868,6 +959,385 @@ function updateUIState() {
   }
 }
 
+function unitNormalize(vec) {
+  let sumSq = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sumSq += vec[i] * vec[i];
+  }
+  const norm = Math.sqrt(sumSq);
+  if (norm === 0) return [...vec];
+  return vec.map(v => v / norm);
+}
+
+function dotProduct(vecA, vecB) {
+  let dot = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dot += vecA[i] * vecB[i];
+  }
+  return dot;
+}
+
+const featureTranslations = {
+  "Garment Upper body": "kiểu dáng áo thiết kế",
+  "Garment Lower body": "kiểu quần thời trang",
+  "Knitwear": "chất dệt kim len ấm áp",
+  "Jersey Basic": "chất thun trơn năng động",
+  "Jersey Fancy": "chất thun kiểu cách điệu",
+  "Outdoor": "phong cách mặc ngoài trời",
+  "Accessories": "phụ kiện thời trang",
+  "Shoes": "phong cách giày dép",
+  "Bags": "dáng túi/balo tiện dụng",
+  "Swimwear": "đồ bơi thời trang",
+  "Ladieswear": "thời trang nữ",
+  "Menswear": "thời trang nam",
+  "Baby/Children": "thời trang trẻ em",
+  "Sport": "phong cách thể thao năng động",
+  "Divided": "phong cách trẻ trung phóng khoáng",
+  "Light Grey": "màu xám nhạt thanh lịch",
+  "Dark Blue": "màu xanh navy nam tính",
+  "Black": "màu đen tối giản",
+  "White": "màu trắng tinh khôi",
+  "Red": "màu đỏ cá tính nổi bật",
+  "Green": "màu xanh lá tươi mát",
+  "Pink": "màu hồng ngọt ngào",
+  "Grey": "màu xám",
+  "Beige": "màu be nhã nhặn",
+  "Purple": "màu tím cá tính",
+  "Yellow": "màu vàng nổi bật",
+  "Orange": "màu cam năng động",
+  "Brown": "màu nâu ấm áp",
+  "Dark Purple": "màu tím đậm bí ẩn",
+  "Light Blue": "màu xanh nhạt dịu mắt",
+  "Dark Grey": "màu xám đậm mạnh mẽ"
+};
+
+const colorKeywords = ["blue", "black", "white", "red", "green", "pink", "grey", "beige", "purple", "yellow", "orange", "brown", "dark", "light"];
+
+function getFriendlyFeatureName(feature) {
+  if (featureTranslations[feature]) {
+    return featureTranslations[feature];
+  }
+  const featureLower = feature.toLowerCase();
+  const colorMap = {
+    "black": "màu đen",
+    "white": "màu trắng",
+    "blue": "màu xanh dương",
+    "red": "màu đỏ",
+    "green": "màu xanh lá",
+    "pink": "màu hồng",
+    "grey": "màu xám",
+    "gray": "màu xám",
+    "beige": "màu be",
+    "purple": "màu tím",
+    "yellow": "màu vàng",
+    "orange": "màu cam",
+    "brown": "màu nâu"
+  };
+  for (const [eng, vie] of Object.entries(colorMap)) {
+    if (featureLower.includes(eng)) {
+      if (featureLower.includes("light")) {
+        return `tông màu ${vie} sáng nhẹ nhàng`;
+      } else if (featureLower.includes("dark")) {
+        return `tông màu ${vie} đậm mạnh mẽ`;
+      }
+      return `tông màu ${vie}`;
+    }
+  }
+  return featureLower;
+}
+
+function getFriendlyStoreName(store) {
+  const storeMap = {
+    "Áo Khoác": "chiếc áo khoác",
+    "Áo Thun": "chiếc áo thun",
+    "Quần": "chiếc quần",
+    "Giày": "đôi giày",
+    "Balo & Túi": "chiếc túi/balo"
+  };
+  return storeMap[store] || "sản phẩm thời trang";
+}
+
+function getFeatureInfo(features) {
+  const colors = features.filter(f => colorKeywords.some(c => f.toLowerCase().includes(c)));
+  const styles = features.filter(f => !colors.includes(f) && !["Ladieswear", "Menswear", "Baby/Children", "Sport", "Divided"].includes(f));
+  return { colors, styles };
+}
+
+function getRecommendationExplanationClientSide(bestProd, selectedItems, usedHistoryAsins, usedTypes) {
+  if (!selectedItems || selectedItems.length === 0) {
+    return {
+      type: "general",
+      reason: "💡 Gợi ý hàng đầu theo phong cách cá nhân."
+    };
+  }
+
+  const candFeatures = bestProd.features || [];
+  const candStore = bestProd.store;
+
+  // Extract all history features & category counts
+  const historyFeaturesCounts = {};
+  const historyCategoriesCounts = {};
+  
+  const parsedHistoryItems = [];
+  selectedItems.forEach(hist => {
+    const hAsin = hist.parent_asin;
+    const hTitle = hist.title;
+    const hStore = hist.store;
+    const hFeatures = hist.features || [];
+
+    if (hStore) {
+      historyCategoriesCounts[hStore] = (historyCategoriesCounts[hStore] || 0) + 1;
+    }
+    hFeatures.forEach(f => {
+      historyFeaturesCounts[f] = (historyFeaturesCounts[f] || 0) + 1;
+    });
+
+    // Compute similarity (dot product since vectors are pre-normalized)
+    const sim = dotProduct(bestProd.embedding, hist.embedding || new Array(bestProd.embedding.length).fill(0));
+
+    parsedHistoryItems.push({
+      parent_asin: hAsin,
+      title: hTitle,
+      store: hStore,
+      features: hFeatures,
+      sim: sim
+    });
+  });
+
+  // Sort by similarity descending
+  parsedHistoryItems.sort((a, b) => b.sim - a.sim);
+
+  // Find best history item not yet matched
+  let bestItem = null;
+  for (const item of parsedHistoryItems) {
+    if (!usedHistoryAsins.has(item.parent_asin)) {
+      bestItem = item;
+      break;
+    }
+  }
+  if (!bestItem && parsedHistoryItems.length > 0) {
+    bestItem = parsedHistoryItems[0];
+  }
+
+  if (bestItem) {
+    const hAsin = bestItem.parent_asin;
+    const hTitle = bestItem.title;
+    const hStore = bestItem.store;
+    const bestSim = bestItem.sim;
+
+    const sharedFeatures = candFeatures.filter(f => bestItem.features.includes(f));
+    const sharedInfo = getFeatureInfo(sharedFeatures);
+
+    // Strategy A: Color Matching
+    if (sharedInfo.colors.length > 0 && !usedTypes.has("color_match")) {
+      const friendlyColor = getFriendlyFeatureName(sharedInfo.colors[0]);
+      const friendlyHStore = getFriendlyStoreName(hStore);
+      return {
+        type: "color_match",
+        reason: `💡 Gợi ý phối màu từ AI: Sản phẩm sở hữu ${friendlyColor} tạo sự đồng điệu tuyệt vời cùng ${friendlyHStore} (${hTitle}) mà bạn đã chọn. Sự kết hợp này mang lại sự cân bằng sắc thái đầy ấn tượng, giúp bộ trang phục trở nên thanh lịch và có chiều sâu. Bạn có thể phối thêm một chiếc túi hoặc kính mát để hoàn thiện set đồ.`,
+        matched_asin: hAsin
+      };
+    }
+
+    // Strategy B: Style/Material Alignment
+    if (sharedInfo.styles.length > 0 && !usedTypes.has("style_match")) {
+      const friendlyStyle = getFriendlyFeatureName(sharedInfo.styles[0]);
+      const friendlyHStore = getFriendlyStoreName(hStore);
+      return {
+        type: "style_match",
+        reason: `💡 Đồng điệu phong cách: Thiết kế mang ${friendlyStyle} vô cùng ăn ý với ${friendlyHStore} (${hTitle}) bạn đã chọn. Sự đồng nhất về chất liệu và phom dáng thiết kế giúp bạn tự tin thể hiện phong cách cá nhân năng động và lịch lãm. Hãy thử kết hợp cùng một đôi giày sneakers để tạo nên diện mạo hoàn hảo.`,
+        matched_asin: hAsin
+      };
+    }
+
+    // Strategy C: Category Complement
+    if (candStore !== hStore && !usedTypes.has("complementary")) {
+      const friendlyCandStore = getFriendlyStoreName(candStore);
+      const friendlyHStore = getFriendlyStoreName(hStore);
+      return {
+        type: "complementary",
+        reason: `💡 Mix & Match lý tưởng: AI đề xuất phối ${friendlyCandStore} này để tạo nên set đồ hoàn hảo cùng ${friendlyHStore} (${hTitle}) bạn đã chọn. Sự tương phản đầy nghệ thuật giữa hai sản phẩm giúp bộ trang phục năng động và thời thượng hơn. Bạn có thể mặc đi làm, đi chơi hoặc dạo phố đều rất phù hợp.`,
+        matched_asin: hAsin
+      };
+    }
+
+    // Strategy D: High Design Similarity
+    if (!usedTypes.has("design_similarity")) {
+      const simPercent = Math.round(bestSim * 100);
+      const friendlyHStore = getFriendlyStoreName(hStore);
+      return {
+        type: "design_similarity",
+        reason: `💡 Kiểu dáng tương đồng: Thiết kế phom dáng đạt ${simPercent}% nét tương hợp với ${friendlyHStore} (${hTitle}) bạn đã chọn. Từ các chi tiết đường may đến cấu trúc cổ áo/ống quần đều thể hiện sự ăn ý tuyệt đối. Đây sẽ là sự bổ sung tuyệt vời vào tủ đồ thời trang của bạn.`,
+        matched_asin: hAsin
+      };
+    }
+  }
+
+  // Strategy E: Profile overlap
+  const popularMatches = candFeatures.filter(f => {
+    const count = historyFeaturesCounts[f] || 0;
+    return count >= 2 || (selectedItems.length > 0 && (count / selectedItems.length) >= 0.3);
+  });
+
+  if (popularMatches.length > 0 && !usedTypes.has("profile_overlap")) {
+    const friendlyMatch = getFriendlyFeatureName(popularMatches[0]);
+    return {
+      type: "profile_overlap",
+      reason: `💡 Đúng gu của bạn: Thiết kế sở hữu ${friendlyMatch} bạn thường quan tâm gần đây. AI nhận thấy bạn yêu thích các sản phẩm có xu hướng phóng khoáng, thoải mái nhưng vẫn lịch lãm. Sản phẩm này hứa hẹn sẽ mang đến cảm giác quen thuộc và tôn dáng tuyệt đối khi mặc.`,
+      matched_asin: null
+    };
+  }
+
+  // Strategy F: Category Preference
+  if (candStore && historyCategoriesCounts[candStore] && !usedTypes.has("category_preference")) {
+    const catRatio = historyCategoriesCounts[candStore] / selectedItems.length;
+    if (catRatio >= 0.25) {
+      const percent = Math.round(catRatio * 100);
+      return {
+        type: "category_preference",
+        reason: `💡 Nhóm đồ ưu tiên: Dòng sản phẩm này chiếm ${percent}% trong tổng số các lượt chọn gần đây của bạn. Điều này thể hiện nhu cầu lớn của bạn đối với dòng sản phẩm ${candStore}. Sản phẩm mới này được cập nhật phom dáng hiện đại nhất để đáp ứng trọn vẹn sở thích của bạn.`,
+        matched_asin: null
+      };
+    }
+  }
+
+  // Fallbacks
+  const storeFallbacks = {
+    "Áo Khoác": "💡 Gợi ý áo khoác thiết kế thời thượng: Mẫu áo khoác có chất liệu cao cấp, phom dáng tôn lên nét lịch thiệp, dễ dàng kết hợp với các trang phục trơn basic hàng ngày để giữ ấm và tăng tính thời trang.",
+    "Giày": "💡 Gợi ý giày năng động: Thiết kế giày tối giản với đế cao su êm ái, nâng đỡ bàn chân hoàn hảo. Mẫu giày cực kỳ thích hợp để đi học, đi làm hay dạo phố dài ngày mà không gây mỏi mệt.",
+    "Áo Thun": "💡 Gợi ý áo thun basic: Mẫu áo thun có chất liệu cotton mát mịn, co giãn và thấm hút tốt. Sản phẩm là món đồ cơ bản lý tưởng để phối kèm áo khoác ngoài hoặc mặc trơn đơn giản.",
+    "Quần": "💡 Gợi ý phom quần chuẩn dáng: Thiết kế quần mang tính ứng dụng cao, đường may tỉ mỉ tạo phom đứng dáng thanh lịch. Phù hợp diện cùng áo sơ mi hoặc áo thun trong nhiều sự kiện.",
+    "Balo & Túi": "💡 Phụ kiện cá tính: Chiếc balo/túi xách với nhiều ngăn chứa tiện dụng và quai đeo êm ái. Sản phẩm hoàn thiện điểm nhấn thời thượng và giúp bạn mang theo các vật dụng thiết yếu một cách ngăn nắp."
+  };
+
+  const fallbackReason = storeFallbacks[candStore] || "💡 Gợi ý cá nhân hóa: Sản phẩm có chất lượng gia công cao, thiết kế dễ phối đồ. Dựa trên phân tích xu hướng mua sắm của nhóm khách hàng tương đồng, đây là món đồ tuyệt vời để làm phong phú phong cách cá nhân của bạn.";
+  return {
+    type: `fallback_${candStore}`,
+    reason: fallbackReason,
+    matched_asin: null
+  };
+}
+
+function generateRecommendationsClientSide(selectedAsins) {
+  const selectedItems = window.allRecommendationData.filter(item => selectedAsins.includes(item.parent_asin));
+  const CATEGORIES = ["Áo Khoác", "Balo & Túi", "Áo Thun", "Quần", "Giày"];
+  
+  const seedsByCategory = {};
+  CATEGORIES.forEach(cat => seedsByCategory[cat] = []);
+  selectedItems.forEach(item => {
+    if (seedsByCategory[item.store]) {
+      seedsByCategory[item.store].push(item.parent_asin);
+    }
+  });
+
+  let globalSeedVecs = selectedItems.map(item => item.embedding).filter(v => !!v);
+  if (globalSeedVecs.length === 0) {
+    globalSeedVecs = [window.allRecommendationData[0].embedding];
+  }
+  
+  const embDim = globalSeedVecs[0].length;
+  let globalCentroid = new Array(embDim).fill(0);
+  globalSeedVecs.forEach(vec => {
+    for (let i = 0; i < embDim; i++) {
+      globalCentroid[i] += vec[i];
+    }
+  });
+  for (let i = 0; i < embDim; i++) {
+    globalCentroid[i] /= globalSeedVecs.length;
+  }
+  let globalCentroidNorm = unitNormalize(globalCentroid);
+
+  const surveyShownAsins = new Set(state.surveyItems.map(item => item.parent_asin));
+  const excludedAsins = new Set([...selectedAsins, ...surveyShownAsins]);
+  
+  const allCandidates = {};
+  CATEGORIES.forEach(cat => allCandidates[cat] = []);
+  window.allRecommendationData.forEach(item => {
+    if (!excludedAsins.has(item.parent_asin) && CATEGORIES.includes(item.store)) {
+      allCandidates[item.store].push(item);
+    }
+  });
+
+  const recommendations = [];
+  const usedHistoryAsins = new Set();
+  const usedTypes = new Set();
+
+  CATEGORIES.forEach(cat => {
+    const catCandidates = allCandidates[cat] || [];
+    if (catCandidates.length === 0) return;
+
+    const catSeedAsins = seedsByCategory[cat] || [];
+    let queryVec;
+    if (catSeedAsins.length > 0) {
+      const catSeeds = selectedItems.filter(item => catSeedAsins.includes(item.parent_asin));
+      const catVecs = catSeeds.map(item => item.embedding).filter(v => !!v);
+      queryVec = new Array(embDim).fill(0);
+      catVecs.forEach(vec => {
+        for (let i = 0; i < embDim; i++) {
+          queryVec[i] += vec[i];
+        }
+      });
+      for (let i = 0; i < embDim; i++) {
+        queryVec[i] /= catVecs.length;
+      }
+    } else {
+      queryVec = [...globalCentroid];
+    }
+    let queryNorm = unitNormalize(queryVec);
+
+    let bestProd = null;
+    let bestScore = -9999;
+    catCandidates.forEach(prod => {
+      const score = dotProduct(prod.embedding, queryNorm);
+      if (score > bestScore) {
+        bestScore = score;
+        bestProd = prod;
+      }
+    });
+
+    if (!bestProd) return;
+
+    const matchPercentage = Math.floor(Math.random() * 14) + 85;
+    const xaiExplanation = getRecommendationExplanationClientSide(
+      bestProd,
+      selectedItems,
+      usedHistoryAsins,
+      usedTypes
+    );
+    
+    if (xaiExplanation.matched_asin) {
+      usedHistoryAsins.add(xaiExplanation.matched_asin);
+    }
+    usedTypes.add(xaiExplanation.type);
+
+    recommendations.push({
+      "parent_asin": bestProd.parent_asin,
+      "score": bestScore,
+      "match_percentage": matchPercentage,
+      "title": bestProd.title || "Unknown Product",
+      "store": bestProd.store,
+      "category": cat,
+      "price": bestProd.price,
+      "average_rating": bestProd.average_rating || 0,
+      "rating_number": bestProd.rating_number || 0,
+      "image_url": bestProd.image_url,
+      "features": (bestProd.features || []).slice(0, 3),
+      "explanation": xaiExplanation.reason
+    });
+  });
+
+  return {
+    "seed_products": selectedItems.map(item => ({
+      "parent_asin": item.parent_asin,
+      "title": item.title,
+      "store": item.store,
+      "price": item.price,
+      "features": item.features
+    })),
+    "recommendations": recommendations
+  };
+}
+
 async function submitSelections() {
   const area = document.getElementById('main-content-area');
   if (!area) return;
@@ -889,39 +1359,55 @@ async function submitSelections() {
   if (submitBtn) submitBtn.style.display = 'none';
   if (resetBtn) resetBtn.style.display = 'inline-flex';
 
+  const selectedAsins = state.selectedPickerAsins || [];
+
+  // Try serverless API first
+  let recommendationsData = null;
   try {
-    const selectedAsins = state.selectedPickerAsins || [];
-    const response = await fetch('http://localhost:5000/api/recommend/survey', {
+    console.log("[API] Attempting to generate recommendations from backend API...");
+    const API_BASE = window.location.origin;
+    const response = await fetch(`${API_BASE}/api/recommend/survey`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ selected_asins: selectedAsins })
     });
-
-    if (!response.ok) throw new Error('Không thể tạo gợi ý từ server');
-    let data = await response.json();
-
-    // ── Apply Experimental Conditions ──
-    const condition = state.condition || 'case_3';
-    const hasXai = (condition === 'case_1' || condition === 'case_3');
-
-    // Scale match percentages to high favorable levels (85% - 98%)
-    data.recommendations.forEach(item => {
-      item.match_percentage = Math.floor(Math.random() * 14) + 85; // 85 to 98
-    });
-
-    state.recommendations = data;
-    state.recommendationGenerated = true;
-    save();
-    
-    // Refresh the view
-    const appContainer = document.getElementById('app');
-    if (appContainer) {
-      appContainer.innerHTML = renderProfileAndDashboard();
+    if (response.ok) {
+      recommendationsData = await response.json();
+      console.log("[API] Loaded recommendations from serverless backend successfully!");
     }
-  } catch (err) {
-    console.error(err);
-    alert("Lỗi: " + err.message + "\nHãy chắc chắn rằng Flask server đang chạy ở port 5000!");
-    resetSurvey();
+  } catch (apiErr) {
+    console.warn("[API] Serverless recommendation failed, falling back to client-side calculation.", apiErr);
+  }
+
+  // Client-side fallback
+  if (!recommendationsData) {
+    try {
+      recommendationsData = generateRecommendationsClientSide(selectedAsins);
+    } catch (err) {
+      console.error("Client fallback recommendation failed:", err);
+      alert("Lỗi: " + err.message);
+      resetSurvey();
+      return;
+    }
+  }
+
+  // ── Apply Experimental Conditions ──
+  const condition = state.condition || 'case_3';
+  const hasXai = (condition === 'case_1' || condition === 'case_3');
+
+  // Scale match percentages to high favorable levels (85% - 98%)
+  recommendationsData.recommendations.forEach(item => {
+    item.match_percentage = Math.floor(Math.random() * 14) + 85; // 85 to 98
+  });
+
+  state.recommendations = recommendationsData;
+  state.recommendationGenerated = true;
+  save();
+  
+  // Refresh the view
+  const appContainer = document.getElementById('app');
+  if (appContainer) {
+    appContainer.innerHTML = renderProfileAndDashboard();
   }
 }
 
