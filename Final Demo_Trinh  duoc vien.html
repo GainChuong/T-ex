@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="APAS - Hệ thống AI đánh giá hiệu suất (VinaPharma)" />
+<meta property="og:title" content="APAS" />
+<meta property="og:description" content="APAS - Hệ thống AI đánh giá hiệu suất (VinaPharma)" />
+<meta property="og:type" content="website" />
+<title>APAS</title>
+<style>
+:root{
+  --navy:#073566;
+  --blue:#0c4a8a;
+  --blue2:#1a6bba;
+  --blue-soft:#eaf3fb;
+  --blue-pale:#f5f9fd;
+  --bg:#eef2f6;
+  --card:#ffffff;
+  --text:#1d2734;
+  --muted:#64748b;
+  --border:#d9e1ea;
+  --border2:#c8d4e2;
+  --shadow:0 3px 16px rgba(15,35,60,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Arial,"Segoe UI",sans-serif;
+  font-size:13px;
+  line-height:1.55;
+  color:var(--text);
+  background:var(--bg);
+}
+button,input,select{font:inherit}
+.topbar{
+  background:var(--navy);
+  color:#fff;
+  min-height:54px;
+  padding:10px 22px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.22);
+}
+.brand{font-size:17px;font-weight:800;color:#79d2f6;letter-spacing:.2px}
+.divider{height:22px;width:1px;background:rgba(255,255,255,.22)}
+.product{font-size:13px;color:rgba(255,255,255,.88)}
+.version{margin-left:auto;font-size:10.5px;font-weight:700;color:#b7e8fb;border:1px solid rgba(183,232,251,.32);border-radius:999px;padding:3px 10px;background:rgba(183,232,251,.10)}
+.page{max-width:1080px;margin:22px auto 64px;padding:0 18px}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+}
+.intro{padding:20px 22px;margin-bottom:18px}
+.intro h1{font-size:17px;color:var(--blue);margin-bottom:10px}
+.intro p{margin-bottom:8px}
+.notice{
+  margin-top:12px;
+  background:var(--blue-soft);
+  border-left:3px solid var(--blue2);
+  border-radius:6px;
+  padding:10px 13px;
+  color:#24466e;
+  font-size:12px;
+}
+.report{overflow:hidden}
+.report-head{background:var(--blue-pale);border-bottom:1px solid var(--border);padding:14px 20px}
+.report-head h2{font-size:15.5px;color:var(--blue);margin-bottom:3px}
+.report-sub{font-size:11.5px;color:var(--muted)}
+.report-body{padding:16px;display:flex;flex-direction:column;gap:12px}
+.section,.profile,.result-box,.locked-box{
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:13px 14px;
+  background:#fff;
+}
+.profile{background:#fbfdff;border-color:#dce6f1}
+.section-title{
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--blue);
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+.section-title::before{
+  content:"";
+  width:3px;
+  height:13px;
+  border-radius:2px;
+  background:var(--blue2);
+  flex:0 0 auto;
+}
+.profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 16px}
+.label{display:block;color:var(--muted);font-size:10.5px;margin-bottom:1px}
+.value{font-size:12px;font-weight:600}
+.result-box{
+  border:2px solid #8fb4d7;
+  background:#f7fbff;
+  padding:18px;
+}
+.result-kicker{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.rating{font-size:28px;line-height:1.15;font-weight:800;color:var(--blue);margin-bottom:10px}
+.policy-box{
+  display:inline-block;
+  border:1px solid #b5c9dc;
+  background:#fff;
+  border-radius:7px;
+  padding:6px 10px;
+  font-weight:700;
+  color:#27496d;
+  margin-bottom:12px;
+}
+.result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-top:10px;border-top:1px solid #d9e5ef}
+.result-item{font-size:11.5px}
+.result-item span{display:block;color:var(--muted);font-size:10.5px;margin-bottom:2px}
+.narrative{background:#f5f9fe;border-left:3px solid var(--blue2);border-radius:0 8px 8px 0;padding:12px 14px;line-height:1.72}
+.narrative strong{color:#174b7c}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:760px}
+thead tr{border-bottom:2px solid var(--border)}
+th{text-align:left;padding:6px 7px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.25px;white-space:nowrap}
+td{padding:8px 7px;border-bottom:1px solid #edf1f5;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+.metric{font-weight:700;font-size:12px}
+.sub{display:block;color:var(--muted);font-size:10.5px;margin-top:1px}
+.chip{
+  display:inline-block;
+  background:var(--blue-soft);
+  color:#23517f;
+  border:1px solid #c6dced;
+  border-radius:5px;
+  padding:2px 7px;
+  font-weight:700;
+  font-size:10.5px;
+  white-space:nowrap;
+}
+.small-note{font-size:10.8px;color:var(--muted);margin-top:8px}
+.info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.info-cell{background:#f6f8fb;border-radius:7px;padding:9px 10px}
+.info-cell span{display:block;color:var(--muted);font-size:10.5px;margin-bottom:2px}
+.info-cell strong{font-size:12px;color:#234e79}
+.peer-grid{display:grid;grid-template-columns:135px 1fr;gap:16px;align-items:center}
+.percentile{text-align:center;border-right:1px solid var(--border);padding-right:14px}
+.percentile .num{font-size:34px;line-height:1;font-weight:800;color:var(--blue)}
+.percentile .txt{font-size:10.5px;color:var(--muted);margin-top:4px}
+.factor-row{display:grid;grid-template-columns:1fr 105px;gap:12px;padding:7px 0;border-bottom:1px solid #edf1f5}
+.factor-row:last-child{border-bottom:none}
+.factor-level{text-align:right;color:#23517f;font-weight:700;font-size:11px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.tag{background:#f0f3f7;border:1px solid #d2dae4;color:#526273;border-radius:5px;padding:3px 8px;font-size:10.8px}
+.locked-box{background:#fbfcfe;border-style:solid}
+.locked-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:center;
+  padding:11px 0;
+  border-bottom:1px solid #e9eef4;
+}
+.locked-row:last-child{border-bottom:none}
+.locked-name{font-weight:700;color:#294d72}
+.locked-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.locked-status{font-size:10.5px;font-weight:700;color:#66788a;border:1px solid #d2dae4;background:#f1f4f7;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.contact-note{background:var(--blue-soft);border:1px solid #c7ddec;border-radius:9px;padding:12px 14px;color:#274a70}
+.contact-btn{margin-top:8px;border:0;border-radius:7px;background:var(--blue);color:#fff;padding:7px 14px;font-weight:700;cursor:default}
+.role-note{background:#f7f9fc;border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-size:12px;line-height:1.65}
+.role-note strong{color:#214d79}
+.preview-panel{
+  display:none;
+  position:sticky;
+  top:0;
+  z-index:200;
+  background:#fff8df;
+  border-bottom:1px solid #e6c85a;
+  padding:9px 14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+}
+.preview-panel.show{display:block}
+.preview-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.preview-title{font-size:11px;font-weight:800;color:#715500;margin-right:5px}
+.preview-btn{border:1px solid #c6a83b;background:#fff;border-radius:6px;padding:5px 9px;font-size:10.5px;cursor:pointer;color:#5e4a00}
+.preview-btn.active{background:#765c00;color:#fff;border-color:#765c00}
+.research-questions{display:none;margin-top:18px;padding:18px 20px}
+.research-questions.show{display:block}
+.research-questions h3{font-size:15px;color:var(--blue);margin-bottom:8px}
+.research-questions h4{font-size:12.5px;color:#244e78;margin:14px 0 6px}
+.research-questions ol{padding-left:20px}
+.research-questions li{margin:5px 0}
+.scale-note{font-size:11px;color:var(--muted);margin-bottom:6px}
+.mcq-list{display:grid;gap:12px;margin:8px 0 4px}
+.mcq-item{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:#fbfdff}
+.mcq-item legend{font-weight:700;color:#26384d;padding:0 5px;margin-left:-5px}
+.mcq-instruction{font-size:11px;color:var(--muted);margin:4px 0 8px}
+.mcq-options{display:grid;gap:7px}
+.mcq-option{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid #dce5ef;border-radius:8px;background:#fff;cursor:pointer;transition:.15s ease}
+.mcq-option:hover{background:#f3f8fd;border-color:#b8cce1}
+.mcq-option input{margin-top:2px;accent-color:var(--blue)}
+.mcq-option span{line-height:1.4}
+@media(max-width:640px){.mcq-item{padding:11px}.mcq-option{padding:8px}}
+.footer-note{text-align:center;color:#6f7f8f;font-size:10.5px;margin-top:14px}
+@media(max-width:760px){
+  .profile-grid,.result-grid,.info-grid{grid-template-columns:1fr 1fr}
+  .peer-grid{grid-template-columns:1fr}
+  .percentile{border-right:0;border-bottom:1px solid var(--border);padding:0 0 12px}
+}
+@media(max-width:520px){
+  .topbar{padding:10px 14px;gap:9px}
+  .version{display:none}
+  .page{padding:0 10px;margin-top:14px}
+  .intro,.report-head{padding:15px}
+  .report-body{padding:10px}
+  .profile-grid,.result-grid,.info-grid{grid-template-columns:1fr}
+  .rating{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<div id="previewPanel" class="preview-panel show" aria-hidden="false">
+  <div class="preview-inner">
+    <span class="preview-title">CHỌN ĐIỀU KIỆN ĐỂ KIỂM TRA</span>
+    <button type="button" class="preview-btn" data-condition="HT_F">Minh bạch cao · Thuận lợi</button>
+    <button type="button" class="preview-btn" data-condition="HT_U">Minh bạch cao · Bất lợi</button>
+    <button type="button" class="preview-btn" data-condition="LT_F">Minh bạch thấp · Thuận lợi</button>
+    <button type="button" class="preview-btn" data-condition="LT_U">Minh bạch thấp · Bất lợi</button>
+    <button type="button" id="randomConditionBtn" class="preview-btn">Chọn ngẫu nhiên</button>
+    <span id="currentConditionLabel" class="preview-title" style="margin-left:auto"></span>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand">VinaPharma</div>
+  <div class="divider"></div>
+  <div class="product">Hệ thống AI đánh giá hiệu suất (APAS)</div>
+  <div class="version">Bản nghiên cứu</div>
+</header>
+
+<main class="page">
+  <div id="researcherInstruction" class="rn" style="background:#fff8df;border:1px solid #e6c85a;border-radius:9px;padding:10px 13px;margin-bottom:14px;color:#604b00;font-size:11.5px;">
+    <strong>Dành cho nghiên cứu viên:</strong> Chọn một trong bốn điều kiện ở phía trên để kiểm tra. Khi khảo sát chính thức, mở file với <code>?participant=1</code>. Bộ chọn và phụ lục sẽ được ẩn, còn hệ thống sẽ tự phân bổ ngẫu nhiên một điều kiện.
+  </div>
+  <section class="intro card">
+    <h1>Bối cảnh tình huống</h1>
+    <p>Hãy tưởng tượng bạn là <strong>Trình Dược viên (TDV)</strong> làm việc toàn thời gian tại <strong>VinaPharma</strong>. Bạn phụ trách <strong>Quận 7, Quận 8 và Bình Chánh</strong>, giới thiệu thuốc kê đơn và hỗ trợ các cơ sở y tế, nhà thuốc trong khu vực.</p>
+    <p>VinaPharma sử dụng <strong>Hệ thống AI đánh giá hiệu suất (APAS)</strong>. APAS phân tích dữ liệu công việc và <strong>đưa ra xếp loại hiệu suất</strong>. Quản lý khu vực và Phòng Nhân sự dùng kết quả này cùng các thông tin liên quan để xét thăng tiến.</p>
+    <p>Dưới đây là báo cáo của bạn cho kỳ <strong>01–06/2025</strong>, phục vụ việc xét thăng tiến lên <strong>TDV Cấp 3</strong>.</p>
+    <div class="notice"><strong>Lưu ý:</strong> Đây là tình huống giả định. Dữ liệu và nhân vật chỉ được tạo ra cho mục đích nghiên cứu. Vui lòng đọc kỹ báo cáo và trả lời theo cảm nhận của bạn.</div>
+  </section>
+
+  <section class="report card" aria-live="polite">
+    <div class="report-head">
+      <h2>Báo cáo đánh giá hiệu suất – APAS</h2>
+      <div class="report-sub">Kỳ đánh giá: 01–06/2025 &nbsp;·&nbsp; Mục đích: Xét thăng tiến lên TDV Cấp 3</div>
+    </div>
+    <div class="report-body">
+      <div class="profile">
+        <div class="section-title">Hồ sơ nhân viên</div>
+        <div class="profile-grid">
+          <div><span class="label">Mã nhân viên</span><span class="value">TDV-2847</span></div>
+          <div><span class="label">Vị trí</span><span class="value">Trình Dược viên</span></div>
+          <div><span class="label">Địa bàn</span><span class="value">Q.7, Q.8, Bình Chánh</span></div>
+          <div><span class="label">Cấp bậc hiện tại</span><span class="value">TDV Cấp 2</span></div>
+          <div><span class="label">Thâm niên</span><span class="value">3 năm 2 tháng</span></div>
+          <div><span class="label">Quản lý trực tiếp</span><span class="value">Trưởng nhóm TDV</span></div>
+        </div>
+      </div>
+
+      <div class="result-box">
+        <div class="result-kicker">Xếp loại do APAS đưa ra</div>
+        <div id="rating" class="rating"></div>
+        <div id="policyOutcome" class="policy-box"></div>
+        <div class="result-grid">
+          <div class="result-item"><span>Kỳ đánh giá</span>01–06/2025 (6 tháng)</div>
+          <div class="result-item"><span>Quyết định thăng tiến cuối cùng</span>Quản lý khu vực và Phòng Nhân sự</div>
+        </div>
+      </div>
+
+      <div id="detailArea"></div>
+
+      <div class="role-note"><strong>Vai trò:</strong> APAS <strong>xếp loại hiệu suất</strong>. Quản lý khu vực và Phòng Nhân sự xem xét kết quả cùng các thông tin liên quan để đưa ra <strong>quyết định thăng tiến cuối cùng</strong>.</div>
+    </div>
+  </section>
+
+  <section id="researchQuestions" class="research-questions card show" aria-hidden="false">
+    <h3>Phụ lục nghiên cứu viên – Câu hỏi bổ sung đề xuất</h3>
+    <p class="scale-note">Nên đặt sau toàn bộ thang đo chính: Role Appropriateness → Procedural Fairness → Cognitive Trust → Decision Acceptance.</p>
+    <div id="questionList"></div>
+  </section>
+
+  <div class="footer-note">APAS · Tình huống giả định phục vụ nghiên cứu</div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  const CONDITIONS = ["HT_F","HT_U","LT_F","LT_U"];
+  const data = {
+    favorable: {
+      rating: "Vượt kỳ vọng",
+      policy: "Đủ điều kiện để được xem xét thăng tiến",
+      narrative: "APAS đối chiếu kết quả của TDV-2847 với dữ liệu lịch sử và xếp loại <strong>Vượt kỳ vọng</strong>. Bốn chỉ tiêu chính đạt hoặc vượt mục tiêu; thị phần tăng trong ba tháng cuối kỳ. Hai chỉ tiêu bổ trợ hoàn thành kế hoạch. Sau khi tính đến mức độ cạnh tranh của địa bàn, xếp loại vẫn không thay đổi.",
+      trendSummary: "3/6 chỉ tiêu cải thiện trong 04–06/2025; các chỉ tiêu còn lại ổn định",
+      percentile: "75%",
+      rank: "Hạng 39/156 · Nhóm 25% cao nhất",
+      peerText: "Nhóm so sánh gồm 156 TDV Cấp 2 có thâm niên, loại địa bàn và danh mục sản phẩm tương tự. TDV-2847 thuộc nhóm 25% có kết quả tổng thể cao nhất.",
+      territoryConclusion: "Sau điều chỉnh, kết quả vẫn được xếp loại Vượt kỳ vọng.",
+      rows: [
+        ["Doanh thu","298 triệu đồng","Mục tiêu: 280 triệu","106,4% mục tiêu","Tăng","Cao hơn 76% nhóm","Đạt tốt"],
+        ["Viếng thăm khách hàng","48 lần/tháng","Mục tiêu: 45 lần","106,7% mục tiêu","Ổn định","Cao hơn 72% nhóm","Đạt tốt"],
+        ["Thị phần địa bàn","20,2%","Mục tiêu: ≥18,0%","Cao hơn 2,2 điểm %","Tăng","Cao hơn 79% nhóm","Đạt tốt"],
+        ["Đánh giá khách hàng","8,1/10","Mục tiêu: ≥7,5","Cao hơn 0,6 điểm","Ổn định","Cao hơn 70% nhóm","Đạt"],
+        ["Khóa đào tạo","3 lần","Mục tiêu: 3 lần","100% kế hoạch","Hoàn thành","Cao hơn 55% nhóm","Đạt"],
+        ["Hoạt động chuyên môn khác","5 lần","Mục tiêu: 5 lần","100% kế hoạch","Ổn định","Cao hơn 57% nhóm","Đạt"]
+      ],
+      factors: [
+        ["Thị phần địa bàn tăng và duy trì trên ngưỡng mục tiêu","Ảnh hưởng cao"],
+        ["Doanh thu và số lượt viếng thăm cùng vượt kế hoạch","Ảnh hưởng cao"],
+        ["Đánh giá khách hàng duy trì trên mức yêu cầu","Ảnh hưởng trung bình"],
+        ["Đào tạo và hoạt động chuyên môn hoàn thành đúng kế hoạch","Ảnh hưởng hỗ trợ"]
+      ]
+    },
+    unfavorable: {
+      rating: "Cần cải thiện",
+      policy: "Chưa đủ điều kiện để được xem xét thăng tiến trong kỳ này",
+      narrative: "APAS đối chiếu kết quả của TDV-2847 với dữ liệu lịch sử và xếp loại <strong>Cần cải thiện</strong>. Bốn chỉ tiêu chính chưa đạt mục tiêu; doanh thu và thị phần giảm trong ba tháng cuối kỳ. Hai chỉ tiêu bổ trợ vẫn hoàn thành kế hoạch. Sau khi tính đến mức độ cạnh tranh của địa bàn, xếp loại vẫn không thay đổi.",
+      trendSummary: "3/6 chỉ tiêu giảm trong 04–06/2025; hai chỉ tiêu bổ trợ hoàn thành kế hoạch",
+      percentile: "36%",
+      rank: "Hạng 100/156",
+      peerText: "Nhóm so sánh gồm 156 TDV Cấp 2 có thâm niên, loại địa bàn và danh mục sản phẩm tương tự. TDV-2847 thấp hơn mức trung vị của nhóm về doanh thu, thị phần và đánh giá khách hàng.",
+      territoryConclusion: "Sau điều chỉnh, kết quả vẫn được xếp loại Cần cải thiện.",
+      rows: [
+        ["Doanh thu","248 triệu đồng","Mục tiêu: 280 triệu","88,6% mục tiêu","Giảm","Cao hơn 34% nhóm","Chưa đạt"],
+        ["Viếng thăm khách hàng","41 lần/tháng","Mục tiêu: 45 lần","91,1% mục tiêu","Giảm nhẹ","Cao hơn 39% nhóm","Chưa đạt"],
+        ["Thị phần địa bàn","15,7%","Mục tiêu: ≥18,0%","Thấp hơn 2,3 điểm %","Giảm","Cao hơn 31% nhóm","Chưa đạt"],
+        ["Đánh giá khách hàng","7,2/10","Mục tiêu: ≥7,5","Thấp hơn 0,3 điểm","Ổn định","Cao hơn 41% nhóm","Chưa đạt"],
+        ["Khóa đào tạo","3 lần","Mục tiêu: 3 lần","100% kế hoạch","Hoàn thành","Cao hơn 55% nhóm","Đạt"],
+        ["Hoạt động chuyên môn khác","5 lần","Mục tiêu: 5 lần","100% kế hoạch","Ổn định","Cao hơn 57% nhóm","Đạt"]
+      ],
+      factors: [
+        ["Doanh thu giảm trong ba tháng cuối và chưa đạt mục tiêu","Ảnh hưởng cao"],
+        ["Thị phần địa bàn thấp hơn ngưỡng và trung vị nhóm tương đồng","Ảnh hưởng cao"],
+        ["Số lượt viếng thăm và đánh giá khách hàng chưa đạt yêu cầu","Ảnh hưởng trung bình"],
+        ["Đào tạo và hoạt động chuyên môn đã hoàn thành kế hoạch","Ảnh hưởng bù trừ"]
+      ]
+    }
+  };
+
+  const params = new URLSearchParams(window.location.search);
+  const participantMode = params.get("participant") === "1";
+  const requested = (params.get("condition") || "").toUpperCase();
+
+  function secureRandomCondition(){
+    if(window.crypto && window.crypto.getRandomValues){
+      const arr = new Uint32Array(1);
+      window.crypto.getRandomValues(arr);
+      return CONDITIONS[arr[0] % CONDITIONS.length];
+    }
+    return CONDITIONS[Math.floor(Math.random() * CONDITIONS.length)];
+  }
+
+  function getCondition(){
+    if(CONDITIONS.includes(requested)) return requested;
+    const stored = sessionStorage.getItem("apas_v5_condition");
+    if(CONDITIONS.includes(stored)) return stored;
+    const assigned = secureRandomCondition();
+    sessionStorage.setItem("apas_v5_condition", assigned);
+    return assigned;
+  }
+
+  function tableHTML(rows){
+    return `
+      <div class="section">
+        <div class="section-title">Chi tiết từng chỉ tiêu</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Chỉ tiêu</th><th>Kết quả</th><th>So với mục tiêu</th><th>Xu hướng</th><th>So với nhóm tương đồng</th><th>Đánh giá APAS</th>
+            </tr></thead>
+            <tbody>
+              ${rows.map(r => `<tr>
+                <td><span class="metric">${r[0]}</span></td>
+                <td><span class="metric">${r[1]}</span><span class="sub">${r[2]}</span></td>
+                <td><span class="chip">${r[3]}</span></td>
+                <td>${r[4]}</td>
+                <td>${r[5]}</td>
+                <td><span class="chip">${r[6]}</span></td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="small-note">Xu hướng được xác định bằng cách so sánh kết quả trung bình T01–T03 với T04–T06.</div>
+      </div>`;
+  }
+
+  function highTransparencyHTML(outcome){
+    return `
+      <div class="section">
+        <div class="section-title">Cách APAS đưa ra xếp loại</div>
+        <div class="narrative">${outcome.narrative}</div>
+      </div>
+
+      ${tableHTML(outcome.rows)}
+
+      <div class="section">
+        <div class="section-title">Điều chỉnh theo đặc điểm địa bàn</div>
+        <div class="info-grid">
+          <div class="info-cell"><span>Mức cạnh tranh của địa bàn</span><strong>Cao hơn mức trung bình</strong></div>
+          <div class="info-cell"><span>Đối thủ trực tiếp</span><strong>9 TDV thuộc 6 công ty</strong></div>
+          <div class="info-cell"><span>Cách điều chỉnh</span><strong>So sánh với địa bàn tương tự</strong></div>
+        </div>
+        <p class="small-note">APAS không áp dụng cùng một ngưỡng cho mọi khu vực. Hệ thống so sánh kết quả với các TDV làm việc tại địa bàn có mức cạnh tranh tương tự. ${outcome.territoryConclusion}</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">So sánh với nhóm TDV tương đồng</div>
+        <div class="peer-grid">
+          <div class="percentile"><div class="num">${outcome.percentile}</div><div class="txt">TDV trong nhóm có kết quả thấp hơn</div><div class="small-note">${outcome.rank}</div></div>
+          <div><p>${outcome.peerText}</p><p class="small-note">Xu hướng: ${outcome.trendSummary}.</p></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Yếu tố ảnh hưởng chính</div>
+        ${outcome.factors.map(f => `<div class="factor-row"><span>${f[0]}</span><span class="factor-level">${f[1]}</span></div>`).join("")}
+        <div class="small-note">APAS phân tích các mẫu trong dữ liệu lịch sử; hệ thống không chỉ cộng điểm theo một công thức cố định.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Thông tin không dùng để xếp loại</div>
+        <p>APAS không dùng các thông tin cá nhân sau:</p>
+        <div class="tags">
+          <span class="tag">Họ tên</span><span class="tag">Giới tính</span><span class="tag">Tuổi hoặc ngày sinh</span><span class="tag">Tình trạng hôn nhân</span><span class="tag">Nơi cư trú</span><span class="tag">Sức khỏe</span><span class="tag">Mạng xã hội</span><span class="tag">Tin nhắn riêng</span><span class="tag">Lịch sử lương thưởng</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Giới hạn và trách nhiệm</div>
+        <p>APAS có thể chưa phản ánh đầy đủ biến động thị trường, lỗi nhập dữ liệu hoặc các đóng góp khó định lượng. Bộ phận dữ liệu kiểm tra thông tin đầu vào. Quản lý khu vực và Phòng Nhân sự xem xét kết quả và quyết định thăng tiến. Nhân viên có thể yêu cầu kiểm tra lại dữ liệu trong vòng 10 ngày làm việc.</p>
+      </div>`;
+  }
+
+  function lowTransparencyHTML(){
+    const locked = [
+      ["Cách APAS đưa ra xếp loại","Dữ liệu và căn cứ của kết quả"],
+      ["Chi tiết từng chỉ tiêu","Kết quả, xu hướng và mức đạt của từng chỉ tiêu"],
+      ["Điều chỉnh theo địa bàn","Cách APAS tính đến mức độ cạnh tranh của khu vực"],
+      ["So sánh với nhóm TDV tương đồng","Nhóm so sánh và vị trí tương đối"],
+      ["Yếu tố ảnh hưởng chính","Những yếu tố tác động nhiều nhất đến kết quả"],
+      ["Dữ liệu, giới hạn và trách nhiệm","Thông tin bị loại trừ và quy trình kiểm tra"]
+    ];
+    return `
+      <div class="locked-box">
+        <div class="section-title">Thông tin chi tiết trong báo cáo</div>
+        ${locked.map(x => `<div class="locked-row">
+          <div><div class="locked-name">${x[0]}</div><div class="locked-desc">${x[1]}</div></div>
+          <span class="locked-status">Không được hiển thị</span>
+        </div>`).join("")}
+      </div>
+      <div class="contact-note">
+        Báo cáo chỉ hiển thị xếp loại và ý nghĩa của kết quả theo chính sách nhân sự. Muốn biết thêm về dữ liệu hoặc cách đánh giá, vui lòng liên hệ Phòng Nhân sự.
+        <br><button type="button" class="contact-btn" aria-label="Liên hệ Phòng Nhân sự">Liên hệ Phòng Nhân sự</button>
+      </div>`;
+  }
+
+  function render(condition){
+    const high = condition.startsWith("HT");
+    const favorable = condition.endsWith("_F");
+    const outcome = favorable ? data.favorable : data.unfavorable;
+
+    document.getElementById("rating").textContent = outcome.rating;
+    document.getElementById("policyOutcome").textContent = outcome.policy;
+    document.getElementById("detailArea").innerHTML = high ? highTransparencyHTML(outcome) : lowTransparencyHTML();
+    document.body.dataset.condition = condition;
+
+    document.querySelectorAll(".preview-btn[data-condition]").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.condition === condition);
+    });
+
+    const labels = {
+      HT_F: "Đang xem: Minh bạch cao · Thuận lợi",
+      HT_U: "Đang xem: Minh bạch cao · Bất lợi",
+      LT_F: "Đang xem: Minh bạch thấp · Thuận lợi",
+      LT_U: "Đang xem: Minh bạch thấp · Bất lợi"
+    };
+    const currentLabel = document.getElementById("currentConditionLabel");
+    if(currentLabel) currentLabel.textContent = labels[condition] || "";
+  }
+
+  function renderResearchQuestions(){
+    const q = document.getElementById("questionList");
+    q.innerHTML = `
+      <h4>A. Kiểm tra thao tác – Mức minh bạch cảm nhận</h4>
+      <p class="scale-note">Likert 1–7: 1 = Hoàn toàn không đồng ý; 7 = Hoàn toàn đồng ý.</p>
+      <ol>
+        <li>Báo cáo giúp tôi hiểu APAS đã đưa ra xếp loại như thế nào.</li>
+        <li>Tôi biết những dữ liệu chính APAS dùng để đánh giá.</li>
+        <li>Vai trò của APAS, Quản lý khu vực và Phòng Nhân sự được trình bày rõ ràng.</li>
+      </ol>
+
+      <h4>B. Kiểm tra thao tác – Mức thuận lợi của kết quả</h4>
+      <p class="scale-note">Likert 1–7.</p>
+      <ol>
+        <li>Kết quả đánh giá này có lợi cho tôi.</li>
+        <li>Kết quả này làm tăng cơ hội tôi được thăng tiến.</li>
+      </ol>
+
+      <h4>C. Kiểm tra hiểu đúng tình huống</h4>
+      <p class="scale-note">Mỗi câu chỉ chọn một phương án phù hợp nhất.</p>
+      <div class="mcq-list" role="group" aria-label="Câu hỏi kiểm tra hiểu tình huống">
+        <fieldset class="mcq-item">
+          <legend>COM1. Trong tình huống này, APAS trực tiếp đưa ra nội dung nào?</legend>
+          <p class="mcq-instruction">Chọn một phương án.</p>
+          <div class="mcq-options">
+            <label class="mcq-option"><input type="radio" name="COM1" value="A"><span>Phân công địa bàn cho TDV.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM1" value="B"><span>Xếp loại hiệu suất của TDV.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM1" value="C"><span>Đưa ra quyết định thăng tiến cuối cùng.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM1" value="D"><span>Xác định mức lương của nhân viên.</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="mcq-item">
+          <legend>COM2. Ai chịu trách nhiệm đưa ra quyết định thăng tiến cuối cùng?</legend>
+          <p class="mcq-instruction">Chọn một phương án.</p>
+          <div class="mcq-options">
+            <label class="mcq-option"><input type="radio" name="COM2" value="A"><span>Chỉ riêng hệ thống APAS.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM2" value="B"><span>Khách hàng và nhà thuốc trong địa bàn.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM2" value="C"><span>Quản lý khu vực và Phòng Nhân sự.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM2" value="D"><span>Nhóm Trình Dược viên tương đồng.</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="mcq-item">
+          <legend>COM3. Báo cáo phản ánh kết quả trong khoảng thời gian nào?</legend>
+          <p class="mcq-instruction">Chọn một phương án.</p>
+          <div class="mcq-options">
+            <label class="mcq-option"><input type="radio" name="COM3" value="A"><span>Một tháng.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM3" value="B"><span>Ba tháng.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM3" value="C"><span>Sáu tháng, từ 01 đến 06/2025.</span></label>
+            <label class="mcq-option"><input type="radio" name="COM3" value="D"><span>Một năm.</span></label>
+          </div>
+        </fieldset>
+      </div>
+
+      <h4>D. Tính hiện thực, khả năng nhập vai và mức dễ hiểu</h4>
+      <p class="scale-note">Likert 1–7.</p>
+      <ol>
+        <li>Tình huống này có thể xảy ra trong thực tế.</li>
+        <li>Tôi có thể dễ dàng hình dung mình là nhân viên trong tình huống này.</li>
+        <li>Giao diện này giống một báo cáo doanh nghiệp có thể sử dụng.</li>
+        <li>Nội dung báo cáo dễ hiểu.</li>
+      </ol>
+
+      <h4>E. Biến kiểm soát hoặc mô tả mẫu nên cân nhắc</h4>
+      <ol>
+        <li>Tần suất sử dụng công cụ AI trong công việc.</li>
+        <li>Kinh nghiệm tham gia đánh giá hiệu suất chính thức.</li>
+        <li>Mức độ quen thuộc với công việc bán hàng hoặc trình dược.</li>
+        <li>Nhận thức về độ chính xác của AI trong quyết định nhân sự.</li>
+      </ol>`;
+  }
+
+  const initial = getCondition();
+  render(initial);
+  renderResearchQuestions();
+
+  document.querySelectorAll(".preview-btn[data-condition]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const selected = btn.dataset.condition;
+      sessionStorage.setItem("apas_v5_condition", selected);
+      render(selected);
+    });
+  });
+
+  const randomBtn = document.getElementById("randomConditionBtn");
+  if(randomBtn){
+    randomBtn.addEventListener("click", () => {
+      const selected = secureRandomCondition();
+      sessionStorage.setItem("apas_v5_condition", selected);
+      render(selected);
+    });
+  }
+
+  if(participantMode){
+    const panel = document.getElementById("previewPanel");
+    const rq = document.getElementById("researchQuestions");
+    const instruction = document.getElementById("researcherInstruction");
+    panel.classList.remove("show");
+    panel.setAttribute("aria-hidden","true");
+    rq.classList.remove("show");
+    rq.setAttribute("aria-hidden","true");
+    if(instruction) instruction.style.display = "none";
+  }
+})();
+</script>
+</body>
+</html>
