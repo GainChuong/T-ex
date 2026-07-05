@@ -2230,28 +2230,8 @@ async function showDppModal(asin) {
                 : `Quy trình Refashion phát sinh <strong>${dpp.co2Emitted.toFixed(2)} kg CO₂</strong> trong quá trình vận chuyển & làm mới, tiết kiệm <strong>${dpp.co2Saved.toFixed(2)} kg CO₂</strong> (giảm <strong>${dpp.co2ReductionPct.toFixed(0)}%</strong>) so với sản xuất sản phẩm mới cùng loại.`}
             </div>
 
-            <div class="dpp-metric-row">
-              <div class="dpp-metric-info">
-                <span>${isEn ? 'Water Saved (Liters)' : 'Lượng Nước Tiết Kiệm (Lit)'}</span>
-                <span class="dpp-metric-val">${dpp.waterSaved} L</span>
-              </div>
-              <div class="dpp-metric-bar">
-                <div class="dpp-metric-bar-fill" id="water-bar" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <div class="dpp-metric-row" style="margin-top: 10px;">
-              <div class="dpp-metric-info">
-                <span>${isEn ? 'Soil & Ecotoxicity (Reduced Impact)' : 'Đất & Độc Tính Sinh Thái (Giảm tác động)'}</span>
-                <span class="dpp-metric-val">34.8% - 53.8%</span>
-              </div>
-              <div class="dpp-metric-bar">
-                <div class="dpp-metric-bar-fill" id="eco-bar" style="width: 0%"></div>
-              </div>
-            </div>
-
             <!-- Material Flow / Workshop Efficiency -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px;">
               <div class="dpp-material-card">
                 <div class="dpp-material-pct">${dpp.materialRecoveryRate}%</div>
                 <div class="dpp-material-lbl">${isEn ? 'Material recovery' : 'Thu hồi vật liệu'}</div>
@@ -2263,10 +2243,6 @@ async function showDppModal(asin) {
               <div class="dpp-material-card">
                 <div class="dpp-material-pct">${dpp.wasteReductionRatio}%</div>
                 <div class="dpp-material-lbl">${isEn ? 'Waste reduction' : 'Giảm thiểu rác thải'}</div>
-              </div>
-              <div class="dpp-material-card">
-                <div class="dpp-material-pct">${dpp.landfillSaved} kg</div>
-                <div class="dpp-material-lbl">${isEn ? 'Landfill avoided' : 'Tránh bãi chôn lấp'}</div>
               </div>
             </div>
             
@@ -2327,21 +2303,6 @@ async function showDppModal(asin) {
           </div>
 
 
-          <!-- Socio-Economic Impact -->
-          <div class="dpp-passport-card">
-            ${renderDppBadges(isEn ? "SDG 8: Decent Work & Economic Growth" : "SDG 8: Việc làm tốt & Tăng trưởng Kinh tế", isEn ? "ESG: Social - Local Employment" : "ESG: Xã hội - Tạo việc làm Địa phương")}
-            <h4 class="card-section-title"><i class="fa-solid fa-people-carry-box" style="color:#8B5A2B"></i> ${isEn ? 'Socio-Economic Impact' : 'Tác Động Kinh Tế - Xã Hội'}</h4>
-            <div style="display: flex; gap: 12px; margin-top: 10px;">
-              <div style="flex: 1; background: #F8F6F1; border: 1px solid #E7E2D8; border-radius: 8px; padding: 12px; text-align: center;">
-                <div style="font-size: 1.15rem; font-weight: 800; color: #8B5A2B;">${isEn ? '+24 Months' : '+24 Tháng'}</div>
-                <div style="font-size: 0.68rem; color: var(--gray-mid); margin-top: 4px; font-weight: 500;">${isEn ? 'Estimated product lifespan extension' : 'Tuổi thọ sản phẩm ước tính tăng thêm'}</div>
-              </div>
-              <div style="flex: 1; background: #F8F6F1; border: 1px solid #E7E2D8; border-radius: 8px; padding: 12px; text-align: center;">
-                <div style="font-size: 1.15rem; font-weight: 800; color: #2E7D7D;">${isEn ? '3 Artisans' : '3 Nhân Công'}</div>
-                <div style="font-size: 0.68rem; color: var(--gray-mid); margin-top: 4px; font-weight: 500;">${isEn ? 'Tailor jobs created' : 'Nghệ nhân thợ may được tạo việc làm'}</div>
-              </div>
-            </div>
-          </div>
 
           <!-- Supply Chain Provenance & Transit -->
           <div class="dpp-passport-card">
@@ -2431,13 +2392,6 @@ async function showDppModal(asin) {
 
   document.body.appendChild(overlay);
 
-  // Trigger LCA bar animations
-  setTimeout(() => {
-    const waterBar = document.getElementById('water-bar');
-    const ecoBar = document.getElementById('eco-bar');
-    if (waterBar) waterBar.style.width = '85%';
-    if (ecoBar) ecoBar.style.width = '48%'; // intermediate value in 34.8% - 53.8%
-  }, 100);
 }
 function closeDppModal() {
   const modal = document.getElementById('dpp-modal');
