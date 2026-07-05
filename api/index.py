@@ -39,14 +39,15 @@ def ensure_image_url(image_url, parent_asin):
     return image_url
 
 def build_database(dataset_type):
+    # parent_asin behaves as the generic article_id / product_id to prevent database schema break
     print(f"Building SQLite database from {dataset_type} JSON files...")
     
     if dataset_type == "sample":
-        reviews_file = "Amazon_Fashion_sample.json"
-        meta_file = "meta_Amazon_Fashion_sample.json"
+        reviews_file = "HM_Fashion_sample.json"
+        meta_file = "meta_HM_Fashion_sample.json"
     else:
-        reviews_file = "Amazon_Fashion.json"
-        meta_file = "meta_Amazon_Fashion.json"
+        reviews_file = "HM_Fashion.json"
+        meta_file = "meta_HM_Fashion.json"
         
     if not os.path.exists(reviews_file) or not os.path.exists(meta_file):
         raise FileNotFoundError(f"Missing source JSON files: {reviews_file} or {meta_file}")

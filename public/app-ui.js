@@ -774,119 +774,61 @@ function getProductImage(url, width = 100, height = 100) {
 }
 
 async function loadPickerItems() {
-  if (state.surveyItems && state.surveyItems.length > 0) {
-    renderPickerGrids();
-    return;
-  }
-  
-  // Try to load from serverless API first
-  let loadedFromServer = false;
   try {
-    console.log("[API] Attempting to load survey items from backend API...");
-    const API_BASE = window.location.origin; // Vercel relative path
-    const response = await fetch(`${API_BASE}/api/survey/items`, {
-      headers: { 'Accept': 'application/json' }
-    });
-    if (response.ok) {
-      const items = await response.json();
-      if (Array.isArray(items) && items.length > 0) {
-        state.surveyItems = items;
-        state.surveyShownAsins = items.map(item => item.parent_asin);
-        save();
-        renderPickerGrids();
-        loadedFromServer = true;
-        console.log("[API] Loaded survey items from serverless backend successfully!");
-      }
+    console.log("[API] Loading survey items from static JSON...");
+    // Always fetch the latest survey_items.json to check the version
+    const response = await fetch('survey_items.json?t=' + Date.now());
+    if (!response.ok) throw new Error('Không thể tải danh sách khảo sát');
+    const payload = await response.json();
+
+    // Support both legacy flat array and new versioned {version, items} format
+    let serverVersion = null;
+    let items = null;
+    if (Array.isArray(payload)) {
+      items = payload;
+    } else if (payload && Array.isArray(payload.items)) {
+      serverVersion = payload.version || null;
+      items = payload.items;
     }
-  } catch (apiErr) {
-    console.warn("[API] Serverless API call failed, falling back to static client-side mode.", apiErr);
-  }
 
-  // Fallback to static client-side mode
-  if (!loadedFromServer) {
-    try {
-      if (!window.allRecommendationData || window.allRecommendationData.length === 0) {
-        const response = await fetch('recommendation_data.json');
-        if (!response.ok) throw new Error('Không thể tải dữ liệu sản phẩm');
-        window.allRecommendationData = await response.json();
-      }
+    if (!items || items.length === 0) throw new Error('Dữ liệu khảo sát trống');
 
-      const categories = ["Áo Khoác", "Balo & Túi", "Áo Thun", "Quần", "Giày"];
-      const grouped = {};
-      categories.forEach(c => grouped[c] = []);
-      window.allRecommendationData.forEach(item => {
-        if (grouped[item.store]) {
-          grouped[item.store].push(item);
-        }
-      });
-      
-      const finalItems = [];
-      categories.forEach(cat => {
-        const catItems = grouped[cat];
-        catItems.sort((a, b) => (b.rating_number || 0) - (a.rating_number || 0));
-        
-        const selected = [];
-        const seenColors = new Set();
-        const seenStyles = new Set();
-        
-        const parseFeatures = (item) => {
-          const feats = item.features || [];
-          const style = feats[1] || feats[0] || null;
-          const color = feats[2] || feats[0] || null;
-          return { style, color };
-        };
-        
-        for (const item of catItems) {
-          const { style, color } = parseFeatures(item);
-          if (style && color && !seenStyles.has(style) && !seenColors.has(color)) {
-            seenStyles.add(style);
-            seenColors.add(color);
-            selected.push(item);
-            if (selected.length >= 15) break;
-          }
-        }
-        
-        if (selected.length < 15) {
-          for (const item of catItems) {
-            if (selected.includes(item)) continue;
-            const { style, color } = parseFeatures(item);
-            if ((style && !seenStyles.has(style)) || (color && !seenColors.has(color))) {
-              if (style) seenStyles.add(style);
-              if (color) seenColors.add(color);
-              selected.push(item);
-              if (selected.length >= 15) break;
-            }
-          }
-        }
-        
-        if (selected.length < 15) {
-          for (const item of catItems) {
-            if (!selected.includes(item)) {
-              selected.push(item);
-              if (selected.length >= 15) break;
-            }
-          }
-        }
-        
-        finalItems.push(...selected);
-      });
-      
-      state.surveyItems = finalItems;
-      state.surveyShownAsins = finalItems.map(item => item.parent_asin);
-      save();
+    // Version-based cache invalidation
+    const cachedVersion = state.surveyDataVersion || null;
+    const versionChanged = serverVersion && (cachedVersion !== serverVersion);
+
+    if (versionChanged) {
+      console.log(`[API] Data version changed (${cachedVersion} → ${serverVersion}). Clearing cached picker items.`);
+      state.surveyItems = null;
+      state.surveyShownAsins = [];
+      state.selectedPickerAsins = [];
+      state.recommendations = null;
+      state.recommendationGenerated = false;
+    }
+
+    // Use cached items only if version matches
+    if (state.surveyItems && state.surveyItems.length > 0 && !versionChanged) {
       renderPickerGrids();
-    } catch (err) {
-      console.error(err);
-      const placeholder = document.getElementById('picker-loading-placeholder');
-      if (placeholder) {
-        placeholder.innerHTML = `
-          <div style="color:#ef4444; padding:20px 0;">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem; margin-bottom:10px;"></i>
-            <h4>Không thể kết nối đến máy chủ dữ liệu</h4>
-            <p style="font-size:0.85rem; margin-top:5px; color:var(--gray-mid);">${err.message}</p>
-          </div>
-        `;
-      }
+      return;
+    }
+
+    state.surveyItems = items;
+    state.surveyShownAsins = items.map(item => item.parent_asin);
+    if (serverVersion) state.surveyDataVersion = serverVersion;
+    save();
+    renderPickerGrids();
+    console.log(`[API] Loaded ${items.length} survey items (version: ${serverVersion || 'legacy'})`);
+  } catch (err) {
+    console.error(err);
+    const placeholder = document.getElementById('picker-loading-placeholder');
+    if (placeholder) {
+      placeholder.innerHTML = `
+        <div style="color:#ef4444; padding:20px 0;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem; margin-bottom:10px;"></i>
+          <h4>Không thể kết nối đến máy chủ dữ liệu</h4>
+          <p style="font-size:0.85rem; margin-top:5px; color:var(--gray-mid);">${err.message}</p>
+        </div>
+      `;
     }
   }
 }
@@ -1253,7 +1195,7 @@ function generateRecommendationsClientSide(selectedAsins) {
   const allCandidates = {};
   CATEGORIES.forEach(cat => allCandidates[cat] = []);
   window.allRecommendationData.forEach(item => {
-    if (!excludedAsins.has(item.parent_asin) && CATEGORIES.includes(item.store)) {
+    if (!excludedAsins.has(item.parent_asin) && CATEGORIES.includes(item.store) && item.image_url && item.image_url.trim() !== '') {
       allCandidates[item.store].push(item);
     }
   });
@@ -1261,6 +1203,9 @@ function generateRecommendationsClientSide(selectedAsins) {
   const recommendations = [];
   const usedHistoryAsins = new Set();
   const usedTypes = new Set();
+
+  // Track ASINs already chosen as recommendations to avoid duplicates
+  const usedRecommendedAsins = new Set();
 
   CATEGORIES.forEach(cat => {
     const catCandidates = allCandidates[cat] || [];
@@ -1285,15 +1230,44 @@ function generateRecommendationsClientSide(selectedAsins) {
     }
     let queryNorm = unitNormalize(queryVec);
 
-    let bestProd = null;
-    let bestScore = -9999;
-    catCandidates.forEach(prod => {
-      const score = dotProduct(prod.embedding, queryNorm);
-      if (score > bestScore) {
-        bestScore = score;
-        bestProd = prod;
+    // Score all candidates
+    const scored = catCandidates
+      .filter(prod => !usedRecommendedAsins.has(prod.parent_asin))
+      .map(prod => ({
+        prod,
+        score: dotProduct(prod.embedding, queryNorm)
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    if (scored.length === 0) return;
+
+    // Take top-10 candidates and do weighted-random sampling
+    // so results are personalized but vary each session
+    const topK = Math.min(10, scored.length);
+    const topCandidates = scored.slice(0, topK);
+
+    // Shift scores to be positive (min-max normalize weights)
+    const minScore = topCandidates[topCandidates.length - 1].score;
+    const maxScore = topCandidates[0].score;
+    const range = maxScore - minScore || 1;
+
+    const weights = topCandidates.map(c => Math.pow((c.score - minScore) / range + 0.1, 2));
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+
+    // Weighted random pick
+    let rand = Math.random() * totalWeight;
+    let chosen = topCandidates[0];
+    for (let i = 0; i < topCandidates.length; i++) {
+      rand -= weights[i];
+      if (rand <= 0) {
+        chosen = topCandidates[i];
+        break;
       }
-    });
+    }
+
+    const bestProd = chosen.prod;
+    const bestScore = chosen.score;
+    usedRecommendedAsins.add(bestProd.parent_asin);
 
     if (!bestProd) return;
 
@@ -1332,7 +1306,10 @@ function generateRecommendationsClientSide(selectedAsins) {
       "title": item.title,
       "store": item.store,
       "price": item.price,
-      "features": item.features
+      "features": item.features,
+      "image_url": item.image_url,
+      "average_rating": item.average_rating,
+      "rating_number": item.rating_number
     })),
     "recommendations": recommendations
   };
@@ -1361,34 +1338,23 @@ async function submitSelections() {
 
   const selectedAsins = state.selectedPickerAsins || [];
 
-  // Try serverless API first
   let recommendationsData = null;
   try {
-    console.log("[API] Attempting to generate recommendations from backend API...");
-    const API_BASE = window.location.origin;
-    const response = await fetch(`${API_BASE}/api/recommend/survey`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selected_asins: selectedAsins })
-    });
-    if (response.ok) {
-      recommendationsData = await response.json();
-      console.log("[API] Loaded recommendations from serverless backend successfully!");
+    // Ensure all recommendation data (embeddings & metadata) is loaded client-side
+    if (!window.allRecommendationData || window.allRecommendationData.length === 0) {
+      console.log("[API] Loading recommendation_data.json statically...");
+      const response = await fetch('recommendation_data.json');
+      if (!response.ok) throw new Error('Không thể tải dữ liệu sản phẩm gợi ý');
+      window.allRecommendationData = await response.json();
     }
-  } catch (apiErr) {
-    console.warn("[API] Serverless recommendation failed, falling back to client-side calculation.", apiErr);
-  }
 
-  // Client-side fallback
-  if (!recommendationsData) {
-    try {
-      recommendationsData = generateRecommendationsClientSide(selectedAsins);
-    } catch (err) {
-      console.error("Client fallback recommendation failed:", err);
-      alert("Lỗi: " + err.message);
-      resetSurvey();
-      return;
-    }
+    // Generate recommendations locally using the LightFM embeddings
+    recommendationsData = generateRecommendationsClientSide(selectedAsins);
+  } catch (err) {
+    console.error("Client recommendation generation failed:", err);
+    alert("Lỗi: " + err.message);
+    resetSurvey();
+    return;
   }
 
   // ── Apply Experimental Conditions ──
@@ -1446,80 +1412,161 @@ function renderRecommendationsView() {
   const header = document.createElement('div');
   header.className = 'rec-view-header';
   header.innerHTML = `
-    <h2>👑 Bộ Outfit Phong Cách Cá Nhân</h2>
-    <p>Mỗi món đồ được lựa chọn kỹ lưỡng để tạo nên tổng thể hài hòa nhất</p>
+    <h2>👑 So Sánh Lựa Chọn & Gợi Ý Outfit</h2>
+    <p>Đối chiếu các sản phẩm bạn đã chọn với các đề xuất tối ưu hóa từ Stylist AI</p>
   `;
   recContainer.appendChild(header);
 
-  const grid = document.createElement('div');
-  grid.className = 'rec-grid';
+  const comparisonContainer = document.createElement('div');
+  comparisonContainer.className = 'comparison-container';
 
-  data.recommendations.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'rec-card';
+  const categories = ["Áo Khoác", "Áo Thun", "Quần", "Giày", "Balo & Túi"];
+  categories.forEach(cat => {
+    // Find user's selected items in this category
+    const userSelectedItems = (data.seed_products || []).filter(item => item.store === cat);
+    // Find AI's recommendation in this category
+    const recItem = (data.recommendations || []).find(item => item.category === cat || item.store === cat);
 
-    const displayImg = getProductImage(item.image_url, 120, 140);
-    const priceText = typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : 'N/A';
-    
-    let tagsHtml = '';
-    if (item.features && item.features.length) {
-      item.features.forEach(tag => {
-        tagsHtml += `<span class="rec-tag">${tag}</span>`;
+    if (userSelectedItems.length === 0 && !recItem) return;
+
+    const row = document.createElement('div');
+    row.className = 'comparison-row';
+
+    // 1. LEFT COLUMN: User selections
+    let leftHtml = `
+      <div class="comparison-column">
+        <div class="comparison-title-badge selected-badge">
+          <i class="fa-solid fa-square-check"></i> Bạn Đã Chọn (${userSelectedItems.length})
+        </div>
+    `;
+    if (userSelectedItems.length > 0) {
+      userSelectedItems.forEach(item => {
+        const displayImg = getProductImage(item.image_url, 70, 70);
+        const priceText = typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : 'N/A';
+        leftHtml += `
+          <div class="selected-item-mini">
+            <img class="selected-item-mini-img" src="${displayImg}" alt="${item.title}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'70\\' height=\\'70\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%232a2d4a\\'/><text x=\\'50%\\' y=\\'50%\\' dominant-baseline=\\'middle\\' text-anchor=\'middle\\' font-family=\\'sans-serif\\' font-size=\\'8\\' fill=\\'%23a0aec0\\'>No Image</text></svg>';">
+            <div class="selected-item-mini-details">
+              <div class="selected-item-mini-title" title="${item.title}">${item.title}</div>
+              <div class="selected-item-mini-meta">Danh mục: <strong>${cat}</strong></div>
+              <div class="selected-item-mini-price">${priceText}</div>
+            </div>
+          </div>
+        `;
       });
     } else {
-      tagsHtml += `<span class="rec-tag">${item.category}</span>`;
+      leftHtml += `
+        <div class="selected-item-mini" style="justify-content: center; border-style: dashed; background: rgba(0,0,0,0.02); height: 100px;">
+          <div style="color: var(--gray-mid); font-size: 0.8rem; font-style: italic; padding: 10px 0;">Không chọn sản phẩm nào</div>
+        </div>
+      `;
     }
+    leftHtml += `</div>`;
 
-    // Toggle XAI explanation visibility
-    let explanationHtml = '';
-    if (hasXai) {
-      let cleanExplanation = item.original_explanation || item.explanation || 'Một sự kết hợp thời trang hoàn hảo dành riêng cho gu cá nhân của bạn.';
-      if (cleanExplanation.includes('🔒') || cleanExplanation.includes('bị ẩn') || cleanExplanation.includes('bị ẩn ở chế độ này')) {
-        cleanExplanation = 'Sản phẩm được lựa chọn dựa trên sự tương thích cao với phong cách cá nhân của bạn, mang lại tổng thể hài hòa và hiện đại.';
-      }
-      explanationHtml = `
-        <div class="xai-explanation-content">
-          <div class="xai-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Stylist AI Tư Vấn:</div>
-          ${cleanExplanation}
+    // 2. MIDDLE COLUMN: Match connection status
+    let middleHtml = '';
+    if (recItem) {
+      middleHtml = `
+        <div class="comparison-middle">
+          <div class="comparison-middle-match">${recItem.match_percentage}% Hợp</div>
+          <div class="comparison-middle-icon">
+            <i class="fa-solid fa-arrow-right-long"></i>
+          </div>
+          <div style="font-size: 0.65rem; font-weight: 700; color: var(--gray-mid); text-transform: uppercase; letter-spacing: 0.05em;">AI Đề Xuất</div>
+        </div>
+      `;
+    } else {
+      middleHtml = `
+        <div class="comparison-middle">
+          <div class="comparison-middle-icon" style="color: var(--gray-light);">
+            <i class="fa-solid fa-arrow-right-long"></i>
+          </div>
         </div>
       `;
     }
 
-    // Toggle DPP Button visibility
-    let dppBtnHtml = '';
-    if (hasDpp) {
-      dppBtnHtml = `
-        <button class="btn dpp-btn-outline" style="margin-top:10px; padding: 8px 12px; font-size: 0.75rem; border-radius: var(--radius); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="showDppModal('${item.parent_asin}')">
-          <i class="fa-solid fa-passport"></i> Xem Hộ Chiếu Số DPP
-        </button>
-      `;
-    }
-
-    card.innerHTML = `
-      <div class="match-badge">${item.match_percentage}% Hợp</div>
-      <div class="rec-img-wrapper">
-        <img class="rec-img" src="${displayImg}" alt="${item.title}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'120\\' height=\\'140\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%232a2d4a\\'/><text x=\\'50%\\' y=\\'50%\\' dominant-baseline=\\'middle\\' text-anchor=\'middle\\' font-family=\\'sans-serif\\' font-size=\\'10\\' fill=\\'%23a0aec0\\'>No Image</text></svg>';">
-      </div>
-      <div class="rec-details">
-        <div class="rec-title" title="${item.title}">${item.title}</div>
-        <div class="rec-meta">Danh mục: <strong>${item.category}</strong> | ASIN: ${item.parent_asin}</div>
-        <div class="rec-price-row">
-          <span class="rec-price">${priceText}</span>
-          <span class="rec-rating">
-            <i class="fa-solid fa-star"></i>
-            <span>${item.average_rating ? item.average_rating.toFixed(1) : '0.0'}</span>
-            <span style="color:var(--gray-mid); font-size:10px;">(${item.rating_number || 0})</span>
-          </span>
+    // 3. RIGHT COLUMN: Recommendation card
+    let rightHtml = `
+      <div class="comparison-column">
+        <div class="comparison-title-badge rec-badge">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Stylist AI Gợi Ý
         </div>
-        <div class="rec-tags">${tagsHtml}</div>
-        ${explanationHtml}
-        ${dppBtnHtml}
-      </div>
     `;
-    grid.appendChild(card);
+
+    if (recItem) {
+      const displayImg = getProductImage(recItem.image_url, 120, 140);
+      const priceText = typeof recItem.price === 'number' ? `$${recItem.price.toFixed(2)}` : 'N/A';
+      
+      let tagsHtml = '';
+      if (recItem.features && recItem.features.length) {
+        recItem.features.forEach(tag => {
+          tagsHtml += `<span class="rec-tag">${tag}</span>`;
+        });
+      } else {
+        tagsHtml += `<span class="rec-tag">${recItem.category}</span>`;
+      }
+
+      // XAI explanation
+      let explanationHtml = '';
+      if (hasXai) {
+        let cleanExplanation = recItem.original_explanation || recItem.explanation || 'Một sự kết hợp thời trang hoàn hảo dành riêng cho gu cá nhân của bạn.';
+        if (cleanExplanation.includes('🔒') || cleanExplanation.includes('bị ẩn') || cleanExplanation.includes('bị ẩn ở chế độ này')) {
+          cleanExplanation = 'Sản phẩm được lựa chọn dựa trên sự tương thích cao với phong cách cá nhân của bạn, mang lại tổng thể hài hòa và hiện đại.';
+        }
+        explanationHtml = `
+          <div class="xai-explanation-content" style="margin-top: 10px;">
+            <div class="xai-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Stylist AI Tư Vấn:</div>
+            ${cleanExplanation}
+          </div>
+        `;
+      }
+
+      // DPP Button
+      let dppBtnHtml = '';
+      if (hasDpp) {
+        dppBtnHtml = `
+          <button class="btn dpp-btn-outline" style="margin-top:10px; width: 100%; padding: 8px 12px; font-size: 0.75rem; border-radius: var(--radius); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="showDppModal('${recItem.parent_asin}')">
+            <i class="fa-solid fa-passport"></i> Xem Hộ Chiếu Số DPP
+          </button>
+        `;
+      }
+
+      rightHtml += `
+        <div class="rec-card" style="margin: 0; width: 100%;">
+          <div class="rec-img-wrapper" style="height: 120px;">
+            <img class="rec-img" src="${displayImg}" alt="${recItem.title}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'120\\' height=\\'120\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%232a2d4a\\'/><text x=\\'50%\\' y=\\'50%\\' dominant-baseline=\\'middle\\' text-anchor=\'middle\\' font-family=\\'sans-serif\\' font-size=\\'10\\' fill=\\'%23a0aec0\\'>No Image</text></svg>';">
+          </div>
+          <div class="rec-details">
+            <div class="rec-title" title="${recItem.title}">${recItem.title}</div>
+            <div class="rec-meta">Danh mục: <strong>${recItem.category}</strong> | ASIN: ${recItem.parent_asin}</div>
+            <div class="rec-price-row">
+              <span class="rec-price">${priceText}</span>
+              <span class="rec-rating">
+                <i class="fa-solid fa-star"></i>
+                <span>${recItem.average_rating ? recItem.average_rating.toFixed(1) : '0.0'}</span>
+                <span style="color:var(--gray-mid); font-size:10px;">(${recItem.rating_number || 0})</span>
+              </span>
+            </div>
+            <div class="rec-tags">${tagsHtml}</div>
+            ${explanationHtml}
+            ${dppBtnHtml}
+          </div>
+        </div>
+      `;
+    } else {
+      rightHtml += `
+        <div class="rec-card" style="justify-content: center; border-style: dashed; background: rgba(0,0,0,0.02); text-align: center; height: 150px;">
+          <div style="color: var(--gray-mid); font-size: 0.8rem; font-style: italic; padding: 20px 0;">Không có gợi ý tương ứng</div>
+        </div>
+      `;
+    }
+    rightHtml += `</div>`;
+
+    row.innerHTML = leftHtml + middleHtml + rightHtml;
+    comparisonContainer.appendChild(row);
   });
 
-  recContainer.appendChild(grid);
+  recContainer.appendChild(comparisonContainer);
   area.appendChild(recContainer);
 
   if (typeof renderProgress === 'function') {
@@ -1527,8 +1574,58 @@ function renderRecommendationsView() {
   }
 }
 
+function renderDppBadges(sdg, esg) {
+  let html = `<div class="dpp-badges-row">`;
+  if (sdg) {
+    html += `<span class="dpp-badge dpp-badge-sdg"><i class="fa-solid fa-seedling"></i> ${sdg}</span>`;
+  }
+  if (esg) {
+    html += `<span class="dpp-badge dpp-badge-esg"><i class="fa-solid fa-leaf"></i> ${esg}</span>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
 /* ── ReFashion Digital Product Passport (DPP) Core Engine ── */
-function getDppData(asin, title, category) {
+async function getDppData(asin, title, category) {
+  if (!asin) {
+    asin = "UNKNOWN";
+  }
+
+  // Ensure recommendations data is loaded client-side if we need to search it
+  if ((!title || !category) && (!window.allRecommendationData || window.allRecommendationData.length === 0)) {
+    try {
+      const response = await fetch('recommendation_data.json');
+      if (response.ok) {
+        window.allRecommendationData = await response.json();
+      }
+    } catch (e) {
+      console.error("Failed to load recommendation data dynamically:", e);
+    }
+  }
+  
+  // Try to resolve title and category from global datasets if missing
+  if (!title || !category) {
+    let product = null;
+    if (window.allRecommendationData) {
+      product = window.allRecommendationData.find(p => p && (p.asin === asin || p.ASIN === asin || p.parent_asin === asin || p.Parent_ASIN === asin));
+    }
+    if (!product && typeof state !== 'undefined' && state && state.recommendations) {
+      if (Array.isArray(state.recommendations)) {
+        product = state.recommendations.find(p => p && (p.asin === asin || p.ASIN === asin || p.parent_asin === asin || p.Parent_ASIN === asin));
+      } else if (typeof state.recommendations === 'object') {
+        product = state.recommendations[asin] || state.recommendations[asin.toLowerCase()] || Object.values(state.recommendations).find(p => p && (p.asin === asin || p.ASIN === asin || p.parent_asin === asin || p.Parent_ASIN === asin));
+      }
+    }
+    if (product) {
+      title = title || product.title || product.Title || "Sản phẩm ReFashion";
+      category = category || product.category || product.Category || product.store || product.Store || "Chung";
+    } else {
+      title = title || "Sản phẩm ReFashion";
+      category = category || "Chung";
+    }
+  }
+
   let hash = 0;
   for (let i = 0; i < asin.length; i++) {
     hash = asin.charCodeAt(i) + ((hash << 5) - hash);
@@ -1540,72 +1637,174 @@ function getDppData(asin, title, category) {
     '0123456789abcdef'[Math.floor(Math.sin(seed + i) * 16 + 16) % 16]
   ).join('');
 
+  // Deterministic random helper based on the product seed
+  const pseudoRandom = (offset, min, max, isInt = false) => {
+    const val = Math.abs(Math.sin(seed + offset)) * 1000;
+    const rand = val - Math.floor(val);
+    const res = min + rand * (max - min);
+    return isInt ? Math.round(res) : res;
+  };
+
+  // Define input parameters based on category according to dppguideline.md
+  let l_ij, l_jm, l_im, xi, e_m, g_m, t_c, e_r, E_new_production;
+  let collected_mass, reused_mass, scrap_mass, output_mass, estimated_waste, actual_waste;
+  
+  e_r = 2.68; // CO2 per liter fuel (kg CO2/L) - standard chemical constant
+
   let materials = [];
   let waterSaved = 0;
-  let co2Avoided = 0;
   let tier4Name = "";
   let tier4Loc = "";
   let tier4Cert = "";
   let tier4Desc = "";
+  let materialOrigin = "";
 
   const catLower = (category || "").toLowerCase();
   if (catLower.includes("áo khoác") || catLower.includes("khoác") || catLower.includes("jacket")) {
+    const pct1 = pseudoRandom(1, 75, 85, true);
     materials = [
-      { name: "Repurposed Denim scrap", pct: 80 },
-      { name: "Recycled Polyester lining", pct: 20 }
+      { name: "Repurposed Denim scrap", pct: pct1 },
+      { name: "Recycled Polyester lining", pct: 100 - pct1 }
     ];
-    waterSaved = 3450;
-    co2Avoided = 15.2;
+    waterSaved = pseudoRandom(2, 3100, 3800, true);
+    l_ij = pseudoRandom(3, 35, 55, true);
+    l_jm = pseudoRandom(4, 100, 140, true);
+    l_im = pseudoRandom(5, 60, 100, true);
+    xi = pseudoRandom(6, 0.84, 0.92);
+    e_m = pseudoRandom(7, 1.0, 1.4);
+    g_m = pseudoRandom(8, 0.13, 0.17);
+    t_c = 200;
+    E_new_production = pseudoRandom(9, 19.0, 25.0);
+    collected_mass = pseudoRandom(10, 90, 110, true);
+    reused_mass = Math.round(collected_mass * pseudoRandom(11, 0.81, 0.87));
+    scrap_mass = Math.round(collected_mass * pseudoRandom(12, 0.09, 0.13));
+    output_mass = reused_mass + Math.round(scrap_mass * 0.4);
+    estimated_waste = Math.round(collected_mass * pseudoRandom(13, 0.45, 0.55));
+    actual_waste = scrap_mass;
     tier4Name = "Texas Post-Consumer Salvage Depot";
     tier4Loc = "Lubbock, Texas, USA";
     tier4Cert = "GOTS, USDA Organic Verified";
     tier4Desc = "High-grade discarded denim clothing collected from post-consumer collection hubs in the USA.";
+    materialOrigin = "Được thu gom và xử lý từ 2 chiếc quần Jeans cũ rách gối cùng với 1 chiếc áo khoác thô cũ bị hỏng khóa kéo tại khu vực Đà Nẵng.";
   } else if (catLower.includes("áo thun") || catLower.includes("thun") || catLower.includes("tshirt")) {
+    const pct1 = pseudoRandom(1, 85, 95, true);
     materials = [
-      { name: "Organic Cotton fibers", pct: 90 },
-      { name: "Recycled Spandex", pct: 10 }
+      { name: "Organic Cotton fibers", pct: pct1 },
+      { name: "Recycled Spandex", pct: 100 - pct1 }
     ];
-    waterSaved = 2100;
-    co2Avoided = 8.6;
+    waterSaved = pseudoRandom(2, 1900, 2400, true);
+    l_ij = pseudoRandom(3, 20, 40, true);
+    l_jm = pseudoRandom(4, 80, 120, true);
+    l_im = pseudoRandom(5, 45, 75, true);
+    xi = pseudoRandom(6, 0.88, 0.95);
+    e_m = pseudoRandom(7, 0.3, 0.6);
+    g_m = pseudoRandom(8, 0.10, 0.14);
+    t_c = 300;
+    E_new_production = pseudoRandom(9, 7.0, 10.0);
+    collected_mass = pseudoRandom(10, 90, 110, true);
+    reused_mass = Math.round(collected_mass * pseudoRandom(11, 0.88, 0.94));
+    scrap_mass = Math.round(collected_mass * pseudoRandom(12, 0.04, 0.08));
+    output_mass = reused_mass + Math.round(scrap_mass * 0.5);
+    estimated_waste = Math.round(collected_mass * pseudoRandom(13, 0.25, 0.35));
+    actual_waste = scrap_mass;
     tier4Name = "Aegean Rain-Fed Cotton Farms";
     tier4Loc = "Izmir, Turkey";
     tier4Cert = "GOTS Certified, Fair Trade";
     tier4Desc = "100% organic cotton grown using purely natural rain irrigation without synthetic agricultural chemical sprays.";
+    materialOrigin = "Tái sinh từ 3 chiếc áo thun 100% cotton cũ gặp lỗi ố màu hoặc sờn rách vai thu gom từ các hộ gia đình.";
   } else if (catLower.includes("quần") || catLower.includes("pants")) {
+    const pct1 = pseudoRandom(1, 80, 90, true);
     materials = [
-      { name: "Recycled Cotton Denim yarn", pct: 85 },
-      { name: "Eco-Elastane stretch", pct: 15 }
+      { name: "Recycled Cotton Denim yarn", pct: pct1 },
+      { name: "Eco-Elastane stretch", pct: 100 - pct1 }
     ];
-    waterSaved = 2980;
-    co2Avoided = 13.4;
+    waterSaved = pseudoRandom(2, 2600, 3200, true);
+    l_ij = pseudoRandom(3, 30, 50, true);
+    l_jm = pseudoRandom(4, 90, 130, true);
+    l_im = pseudoRandom(5, 55, 85, true);
+    xi = pseudoRandom(6, 0.85, 0.93);
+    e_m = pseudoRandom(7, 0.6, 1.0);
+    g_m = pseudoRandom(8, 0.12, 0.16);
+    t_c = 250;
+    E_new_production = pseudoRandom(9, 13.0, 17.0);
+    collected_mass = pseudoRandom(10, 90, 110, true);
+    reused_mass = Math.round(collected_mass * pseudoRandom(11, 0.84, 0.90));
+    scrap_mass = Math.round(collected_mass * pseudoRandom(12, 0.07, 0.11));
+    output_mass = reused_mass + Math.round(scrap_mass * 0.4);
+    estimated_waste = Math.round(collected_mass * pseudoRandom(13, 0.35, 0.45));
+    actual_waste = scrap_mass;
     tier4Name = "Binh Duong Deadstock Textile Salvage";
     tier4Loc = "Binh Duong, Vietnam";
     tier4Cert = "GRS (Global Recycled Standard)";
     tier4Desc = "Unused leftovers and cutting waste gathered from standard clothing manufacturing factories in Southern Vietnam.";
+    materialOrigin = "Chế tác kết hợp từ vải thừa tồn kho của các xưởng may gia công lớn và 1 chiếc quần kaki cũ bị hỏng cạp.";
   } else if (catLower.includes("giày") || catLower.includes("shoes")) {
+    const pct1 = pseudoRandom(1, 65, 75, true);
     materials = [
-      { name: "Piñatex Pineapple fiber", pct: 70 },
-      { name: "Recycled Rubber sole", pct: 30 }
+      { name: "Piñatex Pineapple fiber", pct: pct1 },
+      { name: "Recycled Rubber sole", pct: 100 - pct1 }
     ];
-    waterSaved = 1750;
-    co2Avoided = 9.8;
+    waterSaved = pseudoRandom(2, 1500, 2000, true);
+    l_ij = pseudoRandom(3, 45, 65, true);
+    l_jm = pseudoRandom(4, 130, 170, true);
+    l_im = pseudoRandom(5, 75, 105, true);
+    xi = pseudoRandom(6, 0.80, 0.89);
+    e_m = pseudoRandom(7, 1.5, 2.1);
+    g_m = pseudoRandom(8, 0.14, 0.18);
+    t_c = 150;
+    E_new_production = pseudoRandom(9, 16.0, 20.0);
+    collected_mass = pseudoRandom(10, 90, 110, true);
+    reused_mass = Math.round(collected_mass * pseudoRandom(11, 0.78, 0.84));
+    scrap_mass = Math.round(collected_mass * pseudoRandom(12, 0.11, 0.16));
+    output_mass = reused_mass + Math.round(scrap_mass * 0.3);
+    estimated_waste = Math.round(collected_mass * pseudoRandom(13, 0.55, 0.65));
+    actual_waste = scrap_mass;
     tier4Name = "Ananas Anam Agrarian Hub";
     tier4Loc = "Manila, Philippines";
     tier4Cert = "Certified B-Corp, Cradle to Cradle";
     tier4Desc = "Extracted from useless pineapple leaves after harvest, creating supplementary circular income for local farming families.";
+    materialOrigin = "Đế giày làm từ cao su lốp xe phế thải băm nhỏ đúc nhiệt; thân giày dệt từ sợi dứa tự nhiên Piñatex kết hợp da vụn bọc sofa cũ hỏng.";
   } else {
     // Balo & Túi / Default
+    const pct1 = pseudoRandom(1, 70, 80, true);
     materials = [
-      { name: "Upcycled Cotton Canvas", pct: 75 },
-      { name: "Ocean-Bound PET Plastic", pct: 25 }
+      { name: "Upcycled Cotton Canvas", pct: pct1 },
+      { name: "Ocean-Bound PET Plastic", pct: 100 - pct1 }
     ];
-    waterSaved = 2650;
-    co2Avoided = 11.9;
+    waterSaved = pseudoRandom(2, 2300, 2900, true);
+    l_ij = pseudoRandom(3, 40, 60, true);
+    l_jm = pseudoRandom(4, 110, 150, true);
+    l_im = pseudoRandom(5, 70, 100, true);
+    xi = pseudoRandom(6, 0.83, 0.91);
+    e_m = pseudoRandom(7, 0.8, 1.2);
+    g_m = pseudoRandom(8, 0.13, 0.17);
+    t_c = 180;
+    E_new_production = pseudoRandom(9, 12.0, 16.5);
+    collected_mass = pseudoRandom(10, 90, 110, true);
+    reused_mass = Math.round(collected_mass * pseudoRandom(11, 0.80, 0.86));
+    scrap_mass = Math.round(collected_mass * pseudoRandom(12, 0.10, 0.14));
+    output_mass = reused_mass + Math.round(scrap_mass * 0.4);
+    estimated_waste = Math.round(collected_mass * pseudoRandom(13, 0.40, 0.50));
+    actual_waste = scrap_mass;
     tier4Name = "Phu Quoc Marine Plastic Cleanup Project";
     tier4Loc = "Phu Quoc, Vietnam";
     tier4Cert = "GRS, Higg Index Verified";
     tier4Desc = "Discarded nylon fishing nets and ocean-bound plastic bottles recovered directly from sea waters and beaches.";
+    materialOrigin = "Tái sinh từ 1 tấm bạt xe tải cũ chịu lực cực cao bị rách nhẹ mép và vải lót từ các áo phao gió hỏng khóa kéo.";
   }
+
+  // Calculate E_refashion according to the exact LCA formula in guideline:
+  // E_refashion = e_r * g_m * ( (l_ij / t_c) + (l_im / t_c) + (d * xi * l_jm) / t_c ) + d * e_m
+  const d = 1; // single product level
+  const E_refashion = e_r * g_m * ( (l_ij / t_c) + (l_im / t_c) + (d * xi * l_jm) / t_c ) + d * e_m;
+  const netCarbonSaved = E_new_production - E_refashion;
+  const co2ReductionPct = (netCarbonSaved / E_new_production) * 100;
+
+  // Calculate Material Circularity Indicators:
+  const materialRecoveryRate = ((reused_mass / collected_mass) * 100).toFixed(1);
+  const scrapToOutput = ((scrap_mass / output_mass) * 100).toFixed(1);
+  const wasteReductionRatio = (100 - (actual_waste / estimated_waste) * 100).toFixed(1);
+  const landfillSaved = (estimated_waste - actual_waste).toFixed(2);
 
   return {
     seed,
@@ -1615,7 +1814,15 @@ function getDppData(asin, title, category) {
     category,
     materials,
     waterSaved,
-    co2Avoided,
+    co2Emitted: E_refashion,
+    co2Saved: netCarbonSaved,
+    co2ReductionPct,
+    materialRecoveryRate,
+    scrapToOutput,
+    wasteReductionRatio,
+    landfillSaved,
+    transportDistance: l_ij + l_jm + l_im,
+    materialOrigin,
     tier4Name,
     tier4Loc,
     tier4Cert,
@@ -1626,173 +1833,406 @@ function getDppData(asin, title, category) {
     tier3Desc: "Processes materials using high-efficiency closed-loop systems, filtering and recycling 98% of processing water.",
     tier2Name: "ReFashion Upcycling Creative Studio",
     tier2Loc: "Da Nang, Vietnam",
-    tier2Cert: "Fair Wear Foundation, Zero-Waste Approved",
-    tier2Desc: "Our artisan designers dismantle, sanitize, redesign, and refashion old garments into premium modern items.",
+    tier2Cert: "ISO 14001, GRS Certified Workshop",
+    tier2Desc: "Sorts, washes, cleans, and manually reconstructs post-consumer textile wastes using handcraft techniques.",
     tier1Name: "ReFashion Da Nang Assembly Workshop",
     tier1Loc: "Da Nang, Vietnam",
-    tier1Cert: "GRS Verified, ISO 14001",
-    tier1Desc: "Final stitching, assembly, quality control checks, digital RFID tagging, and validation for circular reuse."
+    tier1Cert: "Fair Labor Association, SA8000",
+    tier1Desc: "Final sewing, branding, packaging, and sorting for direct-to-consumer distribution and logistics tracking."
   };
 }
 
-function showDppModal(asin) {
-  const recommendations = (state.recommendations && state.recommendations.recommendations) || [];
-  const item = recommendations.find(r => r.parent_asin === asin);
-  if (!item) return;
-
-  const dpp = getDppData(asin, item.title, item.category);
-
-  // Remove existing modal if any
-  closeDppModal();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'dpp-modal-overlay';
-  overlay.id = 'dpp-modal';
-  overlay.onclick = (e) => {
-    if (e.target === overlay) closeDppModal();
+function getLocalizedDpp(dpp, lang) {
+  const isEn = lang === 'en';
+  
+  const materialTranslations = {
+    "Repurposed Denim scrap": { vi: "Mảnh denim tái định hình", en: "Repurposed Denim scrap" },
+    "Recycled Polyester lining": { vi: "Lót polyester tái chế", en: "Recycled Polyester lining" },
+    "Organic Cotton fibers": { vi: "Sợi bông hữu cơ", en: "Organic Cotton fibers" },
+    "Recycled Spandex": { vi: "Chất co giãn tái chế", en: "Recycled Spandex" },
+    "Recycled Cotton Denim yarn": { vi: "Sợi cotton denim tái chế", en: "Recycled Cotton Denim yarn" },
+    "Eco-Elastane stretch": { vi: "Eco-Elastane co giãn", en: "Eco-Elastane stretch" },
+    "Piñatex Pineapple fiber": { vi: "Sợi dứa tự nhiên Piñatex", en: "Piñatex Pineapple fiber" },
+    "Recycled Rubber sole": { vi: "Đế cao su tái chế", en: "Recycled Rubber sole" },
+    "Upcycled Cotton Canvas": { vi: "Vải bạt cotton tái tạo", en: "Upcycled Cotton Canvas" },
+    "Ocean-Bound PET Plastic": { vi: "Nhựa PET cứu hộ đại dương", en: "Ocean-Bound PET Plastic" }
   };
 
-  const qrCodeSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
-      <rect width="100" height="100" fill="#ffffff"/>
-      <rect x="10" y="10" width="20" height="20" fill="#2B2B2B"/>
-      <rect x="13" y="13" width="14" height="14" fill="#ffffff"/>
-      <rect x="16" y="16" width="8" height="8" fill="#2B2B2B"/>
-      <rect x="70" y="10" width="20" height="20" fill="#2B2B2B"/>
-      <rect x="73" y="13" width="14" height="14" fill="#ffffff"/>
-      <rect x="76" y="16" width="8" height="8" fill="#2B2B2B"/>
-      <rect x="10" y="70" width="20" height="20" fill="#2B2B2B"/>
-      <rect x="13" y="73" width="14" height="14" fill="#ffffff"/>
-      <rect x="16" y="76" width="8" height="8" fill="#2B2B2B"/>
-      <rect x="76" y="76" width="8" height="8" fill="#2B2B2B"/>
-      <rect x="35" y="12" width="4" height="4" fill="#2B2B2B"/>
-      <rect x="42" y="18" width="8" height="4" fill="#2B2B2B"/>
-      <rect x="35" y="28" width="4" height="8" fill="#2B2B2B"/>
-      <rect x="52" y="28" width="8" height="4" fill="#2B2B2B"/>
-      <rect x="12" y="38" width="8" height="4" fill="#2B2B2B"/>
-      <rect x="22" y="45" width="4" height="4" fill="#2B2B2B"/>
-      <rect x="15" y="55" width="4" height="8" fill="#2B2B2B"/>
-      <rect x="38" y="38" width="8" height="8" fill="#2B2B2B"/>
-      <rect x="52" y="45" width="4" height="12" fill="#2B2B2B"/>
-      <rect x="42" y="60" width="12" height="4" fill="#2B2B2B"/>
-      <rect x="35" y="70" width="4" height="4" fill="#2B2B2B"/>
-      <rect x="38" y="78" width="8" height="4" fill="#2B2B2B"/>
-      <rect x="68" y="38" width="4" height="4" fill="#2B2B2B"/>
-      <rect x="78" y="35" width="8" height="4" fill="#2B2B2B"/>
-      <rect x="65" y="50" width="12" height="4" fill="#2B2B2B"/>
-      <rect x="78" y="58" width="4" height="8" fill="#2B2B2B"/>
-      <rect x="58" y="72" width="8" height="4" fill="#2B2B2B"/>
-    </svg>
-  `;
+  const localizedMaterials = dpp.materials.map(m => ({
+    pct: m.pct,
+    name: materialTranslations[m.name] ? (isEn ? materialTranslations[m.name].en : materialTranslations[m.name].vi) : m.name
+  }));
 
+  const originTranslations = {
+    jacket: {
+      vi: "Được thu gom và xử lý từ 2 chiếc quần Jeans cũ rách gối cùng với 1 chiếc áo khoác thô cũ bị hỏng khóa kéo tại khu vực Đà Nẵng.",
+      en: "Collected and processed from 2 old knee-torn Jeans and 1 old canvas jacket with a broken zipper in the Da Nang area."
+    },
+    tshirt: {
+      vi: "Tái sinh từ 3 chiếc áo thun 100% cotton cũ gặp lỗi ố màu hoặc sờn rách vai thu gom từ các hộ gia đình.",
+      en: "Reborn from 3 old 100% cotton t-shirts with stains or worn shoulders collected from households."
+    },
+    pants: {
+      vi: "Chế tác kết hợp từ vải thừa tồn kho của các xưởng may gia công lớn và 1 chiếc quần kaki cũ bị hỏng cạp.",
+      en: "Crafted from surplus inventory of large garment factories and 1 old khaki pants with a damaged waistband."
+    },
+    shoes: {
+      vi: "Đế giày làm từ cao su lốp xe phế thải băm nhỏ đúc nhiệt; thân giày dệt từ sợi dứa tự nhiên Piñatex kết hợp da vụn bọc sofa cũ hỏng.",
+      en: "Shoe soles made from shredded waste tires heat-molded; shoe body woven from Piñatex natural pineapple fiber combined with scrap leather from old sofas."
+    },
+    default: {
+      vi: "Tái sinh từ 1 tấm bạt xe tải cũ chịu lực cực cao bị rách nhẹ mép và vải lót từ các áo phao gió hỏng khóa kéo.",
+      en: "Reborn from 1 old heavy-duty truck tarp with a slightly torn edge and lining fabric from damaged windbreaker life jackets."
+    }
+  };
+
+  let originKey = "default";
+  const catLower = (dpp.category || "").toLowerCase();
+  if (catLower.includes("áo khoác") || catLower.includes("khoác") || catLower.includes("jacket")) originKey = "jacket";
+  else if (catLower.includes("áo thun") || catLower.includes("thun") || catLower.includes("tshirt")) originKey = "tshirt";
+  else if (catLower.includes("quần") || catLower.includes("pants")) originKey = "pants";
+  else if (catLower.includes("giày") || catLower.includes("shoes")) originKey = "shoes";
+
+  const localizedOrigin = isEn ? originTranslations[originKey].en : originTranslations[originKey].vi;
+
+  const certifications = {
+    jacket: {
+      tier3: "bluesign, Global Recycled Standard",
+      tier2: "ISO 14001, GRS Certified Denim Workshop",
+      tier1: "Fair Labor Association, SA8000"
+    },
+    tshirt: {
+      tier3: "GOTS Certified, OEKO-TEX Standard 100",
+      tier2: "GRS Standard, Clean Clothes Campaign",
+      tier1: "WRAP Certified, SA8000"
+    },
+    pants: {
+      tier3: "Higg Index Verified, Oeko-Tex",
+      tier2: "GRS Certified, ISO 9001",
+      tier1: "Bag/Pants SA8000, Fair Wear Foundation"
+    },
+    shoes: {
+      tier3: "Cradle to Cradle, FSC Certified Rubber",
+      tier2: "B-Corp Standard, ISO 14001",
+      tier1: "SA8000, Fair Labor Certified"
+    },
+    default: {
+      tier3: "GRS Standard, Ocean Bound Plastic Certified",
+      tier2: "ISO 14001, GRS Certified Canvas Workshop",
+      tier1: "SA8000, Fair Labor Association"
+    }
+  };
+
+  const tier3Translations = {
+    jacket: {
+      name: { vi: "Nhà máy dệt kéo sợi Denim Đồng Nai", en: "Dong Nai Denim-Spinning Factory" },
+      loc: { vi: "Đồng Nai, Việt Nam", en: "Dong Nai, Vietnam" },
+      desc: { vi: "Tái chế và kéo sợi từ các mảnh vụn denim chất lượng cao thu hồi.", en: "Recycles and spins threads from recovered high-quality denim scraps." }
+    },
+    tshirt: {
+      name: { vi: "Nhà máy kéo sợi bông hữu cơ Phong Phú", en: "Phong Phu Organic Cotton Spinning Mill" },
+      loc: { vi: "TP. Hồ Chí Minh, Việt Nam", en: "Ho Chi Minh City, Vietnam" },
+      desc: { vi: "Kéo sợi bông hữu cơ tái sinh bằng máy dệt tự động tiêu tụ điện năng thấp.", en: "Spins regenerated organic cotton yarns using low-energy automated machinery." }
+    },
+    pants: {
+      name: { vi: "Xưởng kéo sợi cotton tái chế Hà Nội", en: "Hanoi Recycled Cotton Spinning Mill" },
+      loc: { vi: "Hà Nội, Việt Nam", en: "Hanoi, Vietnam" },
+      desc: { vi: "Xử lý phế phẩm may mặc công nghiệp thành các cuộn sợi cotton dệt quần bền chắc.", en: "Processes industrial garments waste into durable cotton spools for pants." }
+    },
+    shoes: {
+      name: { vi: "Nhà máy tinh luyện cao su phế liệu Bình Dương", en: "Binh Duong Tire Rubber Refining Plant" },
+      loc: { vi: "Bình Dương, Việt Nam", en: "Binh Duong, Vietnam" },
+      desc: { vi: "Tái chế cao su từ lốp xe cũ hỏng kết hợp tinh chế sợi dứa tự nhiên để chế tác đế và lót.", en: "Recycles scrap tire rubber and refines natural pineapple fibers for shoe soles and linings." }
+    },
+    default: {
+      name: { vi: "Nhà máy tái sinh nhựa biển Long An", en: "Long An Ocean Plastic Pellet Factory" },
+      loc: { vi: "Long An, Việt Nam", en: "Long An, Vietnam" },
+      desc: { vi: "Tái chế chai nhựa thu hồi từ đại dương thành hạt nhựa và sợi PET chịu lực cao làm vải bạt.", en: "Recycles ocean plastic bottles into high-tenacity PET fibers for heavy-duty bag canvas." }
+    }
+  };
+
+  const tier2Translations = {
+    jacket: {
+      name: { vi: "Xưởng tái chế áo khoác Sông Hồng", en: "Song Hong Jacket Upcycling Atelier" },
+      loc: { vi: "Nam Định, Việt Nam", en: "Nam Dinh, Vietnam" },
+      desc: { vi: "May tái cấu trúc, thiết kế các mảnh denim ghép nối và lót gió của áo cũ.", en: "Deconstructs, patches denim panels, and stitches inner windbreaker linings." }
+    },
+    tshirt: {
+      name: { vi: "Xưởng may sinh thái Huế Eco-Knitwear", en: "Hue Eco-Knitwear Creative Studio" },
+      loc: { vi: "Thừa Thiên Huế, Việt Nam", en: "Thua Thien Hue, Vietnam" },
+      desc: { vi: "Xử lý làm sạch, phân loại sợi và may tái tạo các phông cotton mềm mại.", en: "Cleanses, sorts fabric scraps, and reconstructs soft cotton t-shirts." }
+    },
+    pants: {
+      name: { vi: "Xưởng thiết kế quần tuần hoàn Đà Nẵng", en: "Da Nang Circular Trousers Atelier" },
+      loc: { vi: "Đà Nẵng, Việt Nam", en: "Da Nang, Vietnam" },
+      desc: { vi: "Cắt ghép, tạo mẫu và may quần kaki/denim thiết kế thời trang từ phế liệu sạch.", en: "Patterns, cuts, and assembles fashionable kaki/denim pants from clean scraps." }
+    },
+    shoes: {
+      name: { vi: "Xưởng đóng giày tuần hoàn Đồng Nai", en: "Dong Nai Footwear Craft Studio" },
+      loc: { vi: "Đồng Nai, Việt Nam", en: "Dong Nai, Vietnam" },
+      desc: { vi: "Tạo khuôn đế cao su lốp xe đúc nhiệt, ép keo sinh học dính thân sợi dứa tự nhiên.", en: "Heat-molds tire rubber soles and binds them with natural pineapple fiber bodies using bio-glues." }
+    },
+    default: {
+      name: { vi: "Xưởng thiết kế túi bạt ReFashion Sài Gòn", en: "ReFashion Saigon Canvas & Bag Studio" },
+      loc: { vi: "TP. Hồ Chí Minh, Việt Nam", en: "Ho Chi Minh City, Vietnam" },
+      desc: { vi: "May thủ công túi xách, balo chịu lực từ bạt xe tải phế thải và lưới nylon.", en: "Handcrafts heavy-duty bags and backpacks from discarded truck tarps and nylon nets." }
+    }
+  };
+
+  const tier1Translations = {
+    jacket: {
+      name: { vi: "Xưởng hoàn thiện áo khoác ReFashion Đà Nẵng", en: "ReFashion Da Nang Jacket Finisher" },
+      loc: { vi: "Đà Nẵng, Việt Nam", en: "Da Nang, Vietnam" },
+      desc: { vi: "Khâu cúc gỗ dừa, đính nhãn QR, ủi hơi nước và đóng gói hộp giấy Kraft tự hủy.", en: "Attaches coconut buttons, stamps QR passport, steam-irons, and packs in Kraft boxes." }
+    },
+    tshirt: {
+      name: { vi: "Trung tâm đóng gói & Giao nhận ReFashion Miền Trung", en: "ReFashion Central Finish & Pack Center" },
+      loc: { vi: "Thừa Thiên Huế, Việt Nam", en: "Thua Thien Hue, Vietnam" },
+      desc: { vi: "Ủi phẳng, gắn nhãn sinh học thông minh, kiểm tra chất lượng và xếp hộp carton tái chế.", en: "Presses, attaches smart bio-tags, inspects stitching quality, and packs in recycled cartons." }
+    },
+    pants: {
+      name: { vi: "Xưởng may hoàn thiện quần ReFashion Đà Nẵng", en: "ReFashion Da Nang Pants Assembly Hub" },
+      loc: { vi: "Đà Nẵng, Việt Nam", en: "Da Nang, Vietnam" },
+      desc: { vi: "Lắp khóa zip đồng tái chế, đính nhãn truy vết, kiểm thử độ co giãn và đóng gói.", en: "Attaches recycled copper zippers, prints passport tags, tests elasticity, and ships." }
+    },
+    shoes: {
+      name: { vi: "Xưởng hoàn thiện giày ReFashion Nam Sài Gòn", en: "ReFashion Saigon Footwear Finish Workshop" },
+      loc: { vi: "TP. Hồ Chí Minh, Việt Nam", en: "Ho Chi Minh City, Vietnam" },
+      desc: { vi: "Luồn dây giày dệt bông, đánh sáp bảo vệ tự nhiên, kiểm tra mối dán đế và xếp hộp gỗ tái sinh.", en: "Laces shoes, applies protective natural wax, tests sole adhesion, and packs in reclaimed wood boxes." }
+    },
+    default: {
+      name: { vi: "Trung tâm hoàn thiện & Logistics ReFashion Phía Nam", en: "ReFashion Southern Logistics & Finish Hub" },
+      loc: { vi: "TP. Hồ Chí Minh, Việt Nam", en: "Ho Chi Minh City, Vietnam" },
+      desc: { vi: "Đính khóa cài kim loại tái chế, kiểm tra chống nước bạt phủ, gắn QR passport và phân phối.", en: "Attaches recycled metal hardware, verifies tarp waterproof coating, mounts QR tag, and distributes." }
+    }
+  };
+
+  const journeyTranslations = {
+    jacket: {
+      repair: {
+        vi: "Gia cố đường may sờn vai, gia cố bọc cùi chỏ và thay khuy đồng đóng đinh bọc đồng bền chắc.",
+        en: "Reinforces worn shoulder seams, elbows, and replaces durable copper-clad buttons."
+      },
+      refurbish: {
+        vi: "Hấp khử trùng Ozone diệt khuẩn, phun phủ nano chống thấm nước nhẹ cho lớp denim mặt ngoài.",
+        en: "Ozone sanitizes to kill bacteria, applies water-resistant nano coating on denim exterior."
+      },
+      redesign: {
+        vi: "Phối ghép mảnh lót gió tái chế và túi hộp tiện lợi từ quần jeans cũ.",
+        en: "Upcycles recycled windbreaker linings and utility cargo pockets from old jeans."
+      }
+    },
+    tshirt: {
+      repair: {
+        vi: "Khâu mạng lại các lỗ sờn nhỏ bằng kỹ thuật thêu chìm chắp vá Sashiko nghệ thuật.",
+        en: "Mends small worn spots using subtle Sashiko art-darning techniques."
+      },
+      refurbish: {
+        vi: "Giặt xả enzym sinh học làm mềm sợi bông hữu cơ thô, loại bỏ các xơ vải thừa bề mặt.",
+        en: "Bio-enzyme washes to soften raw organic cotton fibers and eliminates surface lint."
+      },
+      redesign: {
+        vi: "Nhuộm màu tự nhiên từ lá trà/củ nâu cũ và tạo điểm nhấn chỉ thêu màu tương phản.",
+        en: "Naturally dyes using tea leaves/brown tubers and adds contrast stitch highlights."
+      }
+    },
+    pants: {
+      repair: {
+        vi: "Thay dây kéo khóa đồng tái chế mới, gia cố cạp lưng quần bằng vải lót gia cường.",
+        en: "Installs new recycled copper zippers, reinforces trouser waistband with lining fabrics."
+      },
+      refurbish: {
+        vi: "Sấy khử trùng Ozone y tế và xả làm mềm vải thô giúp mặc thoáng mát dễ chịu.",
+        en: "Ozone sanitizes and applies eco-softener to make canvas fabric breathable and soft."
+      },
+      redesign: {
+        vi: "Cắt ngắn thành quần ngố hoặc may thêm túi hộp bên hông thời trang tiện lợi.",
+        en: "Crops to shorter lengths or stitches stylish utility cargo pockets on the side."
+      }
+    },
+    shoes: {
+      repair: {
+        vi: "Gia khâu viền đế bằng chỉ sáp dù, dán ép lại keo sinh học chịu lực lực nén cao.",
+        en: "Stitches sole borders with waxed nylon thread, binds with high-tensile bio-glues."
+      },
+      refurbish: {
+        vi: "Khử mùi sâu bằng buồng ion âm, đánh sáp ong tự nhiên bảo vệ mặt da dứa Piñatex.",
+        en: "Deep deodorizes via negative-ion chambers, applies natural beeswax on Piñatex leather."
+      },
+      redesign: {
+        vi: "Thay lót giày bằng xốp EVA tái chế đàn hồi tốt và đổi dây giày dệt từ sợi dứa dẻo dai.",
+        en: "Upgrades insoles with recycled EVA foam and laces shoes with tough pineapple fibers."
+      }
+    },
+    default: {
+      repair: {
+        vi: "Gia cố góc túi chịu lực nặng, đính lại đinh tán kim loại và tay xách bằng bạt xe tải.",
+        en: "Reinforces high-stress bag corners, rivets metal studs, and strengthens truck-tarp straps."
+      },
+      refurbish: {
+        vi: "Vệ sinh sâu chống thấm nước bằng dung dịch sáp tự nhiên thân thiện môi trường.",
+        en: "Deep cleanses and applies eco-friendly natural wax for enhanced waterproof protection."
+      },
+      redesign: {
+        vi: "Gia công túi phụ tiện lợi từ phế liệu lót dù và dây đai an toàn ô tô cũ thu hồi.",
+        en: "Stitches inner utility pockets from surplus parachute lining and reclaimed car seatbelts."
+      }
+    }
+  };
+
+  const qcTranslations = {
+    jacket: {
+      qc1: { vi: "Quy trình giặt tẩy sinh học thân thiện da, không chứa hóa chất độc hại.", en: "Eco-washing process friendly to skin, completely free of toxic chemicals." },
+      qc2: { vi: "Sát khuẩn nhiệt độ cao tiêu diệt 99.9% vi khuẩn và nấm mốc.", en: "High-temperature sterilization destroys 99.9% of bacteria and mold." },
+      qc3: { vi: "Đạt chuẩn chịu lực kéo đường may 150N kéo giãn không đứt chỉ.", en: "Meets 150N seam tensile strength test, promising durability." }
+    },
+    tshirt: {
+      qc1: { vi: "Sử dụng nước giặt sinh học dịu nhẹ cho mọi làn da nhạy cảm nhất.", en: "Uses mild bio-detergents safe for even the most sensitive skin." },
+      qc2: { vi: "Hấp Ozone buồng kín sạch thơm và loại bỏ bụi bẩn mịn.", en: "Closed-chamber Ozone steam cleanses and removes fine dust particles." },
+      qc3: { vi: "Đã qua test độ co rút vải sau khi giặt sấy nhiệt chuẩn xuất khẩu.", en: "Passed shrinkage tests under export-standard washing and drying." }
+    },
+    pants: {
+      qc1: { vi: "Giặt xả sinh học làm mềm vải dệt thô giúp thoải mái vận động.", en: "Bio-softening wash relaxes raw weave fabric for flexible movement." },
+      qc2: { vi: "Khử trùng buồng y tế loại bỏ hoàn toàn các mầm bệnh bám dính.", en: "Medical-grade chamber sterilization completely removes pathogen traces." },
+      qc3: { vi: "Gia cường các điểm chịu lực ở túi quần bảo đảm không rách sứt.", en: "Reinforced high-stress pocket corners guarantees tear-free durability." }
+    },
+    shoes: {
+      qc1: { vi: "Khử khuẩn tia cực tím UV và Ozone diệt nấm mốc lòng giày.", en: "UV light and Ozone sterilization completely eradicates shoe interior mold." },
+      qc2: { vi: "Keo sinh học không VOC bảo vệ sức khỏe hệ hô hấp tiêu dùng.", en: "VOC-free bio-glues protect consumer respiratory health." },
+      qc3: { vi: "Đạt chuẩn uốn gấp đế giày 100,000 lần không nứt gãy cơ học.", en: "Passed 100,000 flexing cycles test without mechanical sole cracking." }
+    },
+    default: {
+      qc1: { vi: "Tẩy rửa sâu loại bỏ dầu mỡ công nghiệp bám trên bạt xe tải cũ.", en: "Deep cleansing strips industrial oils and residues from old truck tarps." },
+      qc2: { vi: "Ozone xử lý mùi hôi cao su và vải bạt cũ triệt để.", en: "Ozone treatment thoroughly neutralizes rubber and tarpaulin odors." },
+      qc3: { vi: "Kiểm nghiệm chống nước áp lực cột nước 2000mm bảo vệ đồ đạc.", en: "Waterproof testing up to 2000mm hydrostatic head protects contents." }
+    }
+  };
+
+  const tier4Translations = {
+    "Texas Post-Consumer Salvage Depot": { vi: "Tổng kho thu hồi phế liệu dệt may Texas", en: "Texas Post-Consumer Salvage Depot" },
+    "Aegean Rain-Fed Cotton Farms": { vi: "Nông trang bông tự nhiên vùng Aegean", en: "Aegean Rain-Fed Cotton Farms" },
+    "Binh Duong Deadstock Textile Salvage": { vi: "Điểm thu hồi vải thừa tồn kho Bình Dương", en: "Binh Duong Deadstock Textile Salvage" },
+    "Ananas Anam Agrarian Hub": { vi: "Trung tâm nông nghiệp Ananas Anam", en: "Ananas Anam Agrarian Hub" },
+    "Phu Quoc Marine Plastic Cleanup Project": { vi: "Dự án làm sạch rác thải nhựa biển Phú Quốc", en: "Phu Quoc Marine Plastic Cleanup Project" }
+  };
+
+  const tier4LocTranslations = {
+    "Lubbock, Texas, USA": { vi: "Lubbock, Texas, Mỹ", en: "Lubbock, Texas, USA" },
+    "Izmir, Turkey": { vi: "Izmir, Thổ Nhĩ Kỳ", en: "Izmir, Turkey" },
+    "Binh Duong, Vietnam": { vi: "Bình Dương, Việt Nam", en: "Binh Duong, Vietnam" },
+    "Manila, Philippines": { vi: "Manila, Philippines", en: "Manila, Philippines" },
+    "Phu Quoc, Vietnam": { vi: "Phú Quốc, Việt Nam", en: "Phu Quoc, Vietnam" }
+  };
+
+  const tier4DescTranslations = {
+    "High-grade discarded denim clothing collected from post-consumer collection hubs in the USA.": {
+      vi: "Quần áo denim cũ bỏ đi chất lượng cao được thu gom từ các trung tâm cứu hộ quần áo cũ của Mỹ.",
+      en: "High-grade discarded denim clothing collected from post-consumer collection hubs in the USA."
+    },
+    "100% organic cotton grown using purely natural rain irrigation without synthetic agricultural chemical sprays.": {
+      vi: "100% bông hữu cơ được trồng thuần tự nhiên bằng nước mưa, không phun thuốc hóa học nông nghiệp.",
+      en: "100% organic cotton grown using purely natural rain irrigation without synthetic agricultural chemical sprays."
+    },
+    "Unused leftovers and cutting waste gathered from standard clothing manufacturing factories in Southern Vietnam.": {
+      vi: "Các góc vải thừa tồn kho và phế phẩm từ các xưởng sản xuất may mặc lớn tại miền Nam Việt Nam.",
+      en: "Unused leftovers and cutting waste gathered from standard clothing manufacturing factories in Southern Vietnam."
+    },
+    "Extracted from useless pineapple leaves after harvest, creating supplementary circular income for local farming families.": {
+      vi: "Sợi được chiết xuất từ lá dứa phế phẩm sau thu hoạch, giúp người dân có thêm thu nhập tuần hoàn.",
+      en: "Extracted from useless pineapple leaves after harvest, creating supplementary circular income for local farming families."
+    },
+    "Discarded nylon fishing nets and ocean-bound plastic bottles recovered directly from sea waters and beaches.": {
+      vi: "Lưới đánh cá cũ bị bỏ đi và chai nhựa được gom trực tiếp từ đại dương và bờ biển Phú Quốc.",
+      en: "Discarded nylon fishing nets and ocean-bound plastic bottles recovered directly from sea waters and beaches."
+    }
+  };
+
+  const t3 = tier3Translations[originKey] || tier3Translations.default;
+  const t2 = tier2Translations[originKey] || tier2Translations.default;
+  const t1 = tier1Translations[originKey] || tier1Translations.default;
+  const certs = certifications[originKey] || certifications.default;
+  const journey = journeyTranslations[originKey] || journeyTranslations.default;
+  const qc = qcTranslations[originKey] || qcTranslations.default;
+
+  return {
+    ...dpp,
+    title: isEn && dpp.title === "Sản phẩm ReFashion" ? "ReFashion Product" : dpp.title,
+    category: isEn && dpp.category === "Chung" ? "General" : dpp.category,
+    materials: localizedMaterials,
+    materialOrigin: localizedOrigin,
+    tier4Name: tier4Translations[dpp.tier4Name] ? (isEn ? tier4Translations[dpp.tier4Name].en : tier4Translations[dpp.tier4Name].vi) : dpp.tier4Name,
+    tier4Loc: tier4LocTranslations[dpp.tier4Loc] ? (isEn ? tier4LocTranslations[dpp.tier4Loc].en : tier4LocTranslations[dpp.tier4Loc].vi) : dpp.tier4Loc,
+    tier4Cert: dpp.tier4Cert,
+    tier4Desc: tier4DescTranslations[dpp.tier4Desc] ? (isEn ? tier4DescTranslations[dpp.tier4Desc].en : tier4DescTranslations[dpp.tier4Desc].vi) : dpp.tier4Desc,
+    tier3Name: isEn ? t3.name.en : t3.name.vi,
+    tier3Loc: isEn ? t3.loc.en : t3.loc.vi,
+    tier3Cert: certs.tier3,
+    tier3Desc: isEn ? t3.desc.en : t3.desc.vi,
+    tier2Name: isEn ? t2.name.en : t2.name.vi,
+    tier2Loc: isEn ? t2.loc.en : t2.loc.vi,
+    tier2Cert: certs.tier2,
+    tier2Desc: isEn ? t2.desc.en : t2.desc.vi,
+    tier1Name: isEn ? t1.name.en : t1.name.vi,
+    tier1Loc: isEn ? t1.loc.en : t1.loc.vi,
+    tier1Cert: certs.tier1,
+    tier1Desc: isEn ? t1.desc.en : t1.desc.vi,
+    journeyRepair: isEn ? journey.repair.en : journey.repair.vi,
+    journeyRefurbish: isEn ? journey.refurbish.en : journey.refurbish.vi,
+    journeyRedesign: isEn ? journey.redesign.en : journey.redesign.vi,
+    qcItem1: isEn ? qc.qc1.en : qc.qc1.vi,
+    qcItem2: isEn ? qc.qc2.en : qc.qc2.vi,
+    qcItem3: isEn ? qc.qc3.en : qc.qc3.vi
+  };
+}
+
+async function showDppModal(asin) {
+  const dppRaw = await getDppData(asin);
+  if (!dppRaw) return;
+
+  const lang = window.currentLang || 'vi';
+  const isEn = lang === 'en';
+  const dpp = getLocalizedDpp(dppRaw, lang);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'dpp-modal';
+  overlay.className = 'dpp-modal-overlay';
   overlay.innerHTML = `
-    <div class="dpp-phone-mockup">
-      <div class="dpp-phone-notch"></div>
-      <div class="dpp-phone-screen">
-        <div class="dpp-phone-header">
-          <span class="dpp-phone-title"><i class="fa-solid fa-passport" style="color:#2E7D7D"></i> DPP ReFashion</span>
-          <button class="dpp-phone-close" onclick="closeDppModal()"><i class="fa-solid fa-xmark"></i></button>
+    <div class="dpp-passport-container">
+      <div class="dpp-passport-header">
+        <div class="dpp-passport-title">
+          <i class="fa-solid fa-passport" style="font-size: 1.8rem; color: var(--navy);"></i>
+          <div>
+            <h3>${isEn ? 'Digital Product Passport (DPP)' : 'Hộ Chiếu Sản Phẩm Kỹ Thuật Số (DPP)'}</h3>
+            <p>${isEn ? 'Product' : 'Sản phẩm'}: <strong>${dpp.title}</strong> | ID: ${dpp.dppId}</p>
+          </div>
         </div>
-        <div class="dpp-phone-body">
+        <button class="dpp-passport-close" onclick="closeDppModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="dpp-passport-body">
+        
+        <!-- Left Column: Identity, LCA, Origin & Composition -->
+        <div class="dpp-passport-col">
           
-          <!-- Identity Header -->
-          <div class="dpp-identity-card">
+          <!-- Identity Card -->
+          <div class="dpp-passport-card">
             <div class="dpp-prod-id">PRODUCT ID: ${dpp.dppId}</div>
-            <div class="dpp-blockchain-badge">
-              <span class="dpp-pulse-dot"></span>
-              <i class="fa-solid fa-link"></i> Blockchain-Verified
-            </div>
-            <div class="dpp-qr-box" title="Scan to verify provenance on ledger">
-              ${qrCodeSvg}
-            </div>
-            <div style="font-size:0.58rem; color:var(--gray-mid); font-family:monospace; word-break:break-all;">
-              Hash: ${dpp.blockHash.substring(0, 18)}...
-            </div>
           </div>
 
-          <!-- Traceability Accordion -->
-          <div class="dpp-card">
-            <h3 class="dpp-card-title"><i class="fa-solid fa-map-location-dot" style="color:#2E7D7D"></i> Supply Chain Provenance</h3>
-            <div class="dpp-timeline">
-              
-              <!-- Tier 1 -->
-              <div class="dpp-timeline-node active" id="dpp-node-1">
-                <div class="dpp-node-indicator"></div>
-                <div class="dpp-node-summary" onclick="toggleDppNode(1)">
-                  <div>
-                    <span class="dpp-node-tier">Tier 1: Assembly & Quality</span>
-                    <div class="dpp-node-title">${dpp.tier1Name}</div>
-                  </div>
-                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
-                </div>
-                <div class="dpp-node-details">
-                  <p style="margin-bottom:3px;"><strong>Địa điểm:</strong> ${dpp.tier1Loc}</p>
-                  <p style="margin-bottom:3px;"><strong>Chứng nhận:</strong> <span style="color:#2E7D7D">${dpp.tier1Cert}</span></p>
-                  <p>${dpp.tier1Desc}</p>
-                </div>
-              </div>
-
-              <!-- Tier 2 -->
-              <div class="dpp-timeline-node" id="dpp-node-2">
-                <div class="dpp-node-indicator"></div>
-                <div class="dpp-node-summary" onclick="toggleDppNode(2)">
-                  <div>
-                    <span class="dpp-node-tier">Tier 2: Upcycling Phase</span>
-                    <div class="dpp-node-title">${dpp.tier2Name}</div>
-                  </div>
-                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
-                </div>
-                <div class="dpp-node-details">
-                  <p style="margin-bottom:3px;"><strong>Địa điểm:</strong> ${dpp.tier2Loc}</p>
-                  <p style="margin-bottom:3px;"><strong>Chứng nhận:</strong> <span style="color:#2E7D7D">${dpp.tier2Cert}</span></p>
-                  <p>${dpp.tier2Desc}</p>
-                </div>
-              </div>
-
-              <!-- Tier 3 -->
-              <div class="dpp-timeline-node" id="dpp-node-3">
-                <div class="dpp-node-indicator"></div>
-                <div class="dpp-node-summary" onclick="toggleDppNode(3)">
-                  <div>
-                    <span class="dpp-node-tier">Tier 3: Processing</span>
-                    <div class="dpp-node-title">${dpp.tier3Name}</div>
-                  </div>
-                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
-                </div>
-                <div class="dpp-node-details">
-                  <p style="margin-bottom:3px;"><strong>Địa điểm:</strong> ${dpp.tier3Loc}</p>
-                  <p style="margin-bottom:3px;"><strong>Chứng nhận:</strong> <span style="color:#2E7D7D">${dpp.tier3Cert}</span></p>
-                  <p>${dpp.tier3Desc}</p>
-                </div>
-              </div>
-
-              <!-- Tier 4 -->
-              <div class="dpp-timeline-node" id="dpp-node-4">
-                <div class="dpp-node-indicator"></div>
-                <div class="dpp-node-summary" onclick="toggleDppNode(4)">
-                  <div>
-                    <span class="dpp-node-tier">Tier 4: Material Source</span>
-                    <div class="dpp-node-title">${dpp.tier4Name}</div>
-                  </div>
-                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
-                </div>
-                <div class="dpp-node-details">
-                  <p style="margin-bottom:3px;"><strong>Địa điểm:</strong> ${dpp.tier4Loc}</p>
-                  <p style="margin-bottom:3px;"><strong>Chứng nhận:</strong> <span style="color:#2E7D7D">${dpp.tier4Cert}</span></p>
-                  <p>${dpp.tier4Desc}</p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- Sustainability Impact Dashboard -->
-          <div class="dpp-card">
-            <h3 class="dpp-card-title"><i class="fa-solid fa-leaf" style="color:#2E7D7D"></i> Sustainability LCA Impact</h3>
+          <!-- Environmental LCA Impact Dashboard -->
+          <div class="dpp-passport-card">
+            ${renderDppBadges(isEn ? "SDG 13: Climate Action" : "SDG 13: Hành động Khí hậu", isEn ? "ESG: Environmental - Carbon & Water Footprint" : "ESG: Môi trường - Dấu chân Carbon & Nước")}
+            <h4 class="card-section-title"><i class="fa-solid fa-leaf" style="color:#2E7D7D"></i> ${isEn ? 'Environmental Impact & LCA' : 'Chỉ Số Tác Động Môi Trường & LCA'}</h4>
             
+            <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 8px; padding: 12px; font-size: 0.78rem; text-align: left; margin-bottom: 14px; color: var(--navy); line-height: 1.4;">
+              <i class="fa-solid fa-circle-info"></i> ${isEn 
+                ? `ReFashion process emits <strong>${dpp.co2Emitted.toFixed(2)} kg CO₂</strong> during transport & refurbishment, saving <strong>${dpp.co2Saved.toFixed(2)} kg CO₂</strong> (<strong>${dpp.co2ReductionPct.toFixed(0)}%</strong> reduction) compared to producing a new product of the same type.`
+                : `Quy trình Refashion phát sinh <strong>${dpp.co2Emitted.toFixed(2)} kg CO₂</strong> trong quá trình vận chuyển & làm mới, tiết kiệm <strong>${dpp.co2Saved.toFixed(2)} kg CO₂</strong> (giảm <strong>${dpp.co2ReductionPct.toFixed(0)}%</strong>) so với sản xuất sản phẩm mới cùng loại.`}
+            </div>
+
             <div class="dpp-metric-row">
               <div class="dpp-metric-info">
-                <span>Nước tiết kiệm (Liters)</span>
+                <span>${isEn ? 'Water Saved (Liters)' : 'Lượng Nước Tiết Kiệm (Lit)'}</span>
                 <span class="dpp-metric-val">${dpp.waterSaved} L</span>
               </div>
               <div class="dpp-metric-bar">
@@ -1800,24 +2240,58 @@ function showDppModal(asin) {
               </div>
             </div>
 
-            <div class="dpp-metric-row">
+            <div class="dpp-metric-row" style="margin-top: 10px;">
               <div class="dpp-metric-info">
-                <span>CO2 giảm thiểu (kg)</span>
-                <span class="dpp-metric-val">${dpp.co2Avoided} kg</span>
+                <span>${isEn ? 'Soil & Ecotoxicity (Reduced Impact)' : 'Đất & Độc Tính Sinh Thái (Giảm tác động)'}</span>
+                <span class="dpp-metric-val">34.8% - 53.8%</span>
               </div>
               <div class="dpp-metric-bar">
-                <div class="dpp-metric-bar-fill" id="co2-bar" style="width: 0%"></div>
+                <div class="dpp-metric-bar-fill" id="eco-bar" style="width: 0%"></div>
               </div>
             </div>
 
-            <p style="font-size: 0.65rem; color: var(--gray-mid); margin-top: 10px; line-height: 1.3">
-              * So sánh tương quan với quy trình sản xuất các sản phẩm hoàn toàn mới tương đương.
+            <!-- Material Flow / Workshop Efficiency -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;">
+              <div class="dpp-material-card">
+                <div class="dpp-material-pct">${dpp.materialRecoveryRate}%</div>
+                <div class="dpp-material-lbl">${isEn ? 'Material recovery' : 'Thu hồi vật liệu'}</div>
+              </div>
+              <div class="dpp-material-card">
+                <div class="dpp-material-pct">${dpp.scrapToOutput}%</div>
+                <div class="dpp-material-lbl">${isEn ? 'Scrap to output rate' : 'Tỷ lệ phế liệu phát sinh'}</div>
+              </div>
+              <div class="dpp-material-card">
+                <div class="dpp-material-pct">${dpp.wasteReductionRatio}%</div>
+                <div class="dpp-material-lbl">${isEn ? 'Waste reduction' : 'Giảm thiểu rác thải'}</div>
+              </div>
+              <div class="dpp-material-card">
+                <div class="dpp-material-pct">${dpp.landfillSaved} kg</div>
+                <div class="dpp-material-lbl">${isEn ? 'Landfill avoided' : 'Tránh bãi chôn lấp'}</div>
+              </div>
+            </div>
+            
+            <p style="font-size: 0.65rem; color: var(--gray-mid); margin-top: 10px; line-height: 1.3; text-align: left;">
+              ${isEn ? '* Calculations apply a 65% displacement rate based on standard LCA studies.' : '* Tính toán áp dụng hệ số thay thế (displacement rate) 65% theo nghiên cứu LCA tiêu chuẩn.'}
             </p>
           </div>
 
+          <!-- Material Origin Card -->
+          <div class="dpp-passport-card">
+            ${renderDppBadges(isEn ? "SDG 12: Responsible Consumption" : "SDG 12: Tiêu dùng Trách nhiệm", isEn ? "ESG: Environmental - Material Stewardship" : "ESG: Môi trường - Quản trị Nguyên liệu")}
+            <h4 class="card-section-title"><i class="fa-solid fa-circle-nodes" style="color:#2E7D7D"></i> ${isEn ? 'Material Origin' : 'Nguồn Gốc Nguyên Vật Liệu'}</h4>
+            <div style="font-size: 0.78rem; line-height: 1.45; text-align: left; color: var(--navy); background: rgba(46, 125, 125, 0.05); border: 1px solid rgba(46, 125, 125, 0.15); border-radius: 8px; padding: 12px; display: flex; align-items: flex-start; gap: 10px;">
+              <i class="fa-solid fa-leaf" style="color:#2E7D7D; margin-top: 3px; font-size: 0.95rem;"></i>
+              <div>
+                <strong>${isEn ? 'Collection details:' : 'Chi tiết nguồn thu gom:'}</strong><br>
+                ${dpp.materialOrigin}
+              </div>
+            </div>
+          </div>
+
           <!-- Material Composition -->
-          <div class="dpp-card">
-            <h3 class="dpp-card-title"><i class="fa-solid fa-recycle" style="color:#8B5A2B"></i> Material Composition</h3>
+          <div class="dpp-passport-card">
+            ${renderDppBadges(isEn ? "SDG 12: Responsible Consumption" : "SDG 12: Tiêu dùng Trách nhiệm", isEn ? "ESG: Environmental - Material Origin" : "ESG: Môi trường - Nguồn gốc Nguyên liệu")}
+            <h4 class="card-section-title"><i class="fa-solid fa-dna" style="color:#2E7D7D"></i> ${isEn ? 'Material Composition' : 'Thành Phần Chất Liệu'}</h4>
             <div class="dpp-material-grid">
               <div class="dpp-material-card">
                 <div class="dpp-material-pct">${dpp.materials[0].pct}%</div>
@@ -1830,27 +2304,126 @@ function showDppModal(asin) {
             </div>
           </div>
 
-          <!-- Ownership & Circular Actions -->
-          <div class="dpp-card">
-            <h3 class="dpp-card-title"><i class="fa-solid fa-certificate" style="color:#A6855B"></i> Ownership & Circularity</h3>
-            <div class="dpp-ownership-badge">
-              <div class="dpp-own-title">Digital Ownership Certificate</div>
-              <div class="dpp-own-holder">ISSUED TO: USER-${dpp.seed % 10000}</div>
-            </div>
-            
-            <div class="dpp-action-group">
-              <button class="dpp-btn dpp-btn-teal" onclick="simulateCircularAction('resell', '${dpp.dppId}')">
-                <i class="fa-solid fa-tags"></i> Resell on ReFashion Market
-              </button>
-              <button class="dpp-btn dpp-btn-outline" onclick="simulateCircularAction('repair', '${dpp.dppId}')">
-                <i class="fa-solid fa-screwdriver-wrench"></i> Request Repair Service
-              </button>
-              <button class="dpp-btn dpp-btn-outline" onclick="simulateCircularAction('recycle', '${dpp.dppId}')">
-                <i class="fa-solid fa-arrow-rotate-left"></i> Return for Fiber Recycling
-              </button>
+        </div>
+
+        <!-- Right Column: Process, QC, Social & Supply Chain -->
+        <div class="dpp-passport-col">
+
+          <!-- 3R Renew Journey -->
+          <div class="dpp-passport-card">
+            ${renderDppBadges(isEn ? "SDG 12: Responsible Consumption" : "SDG 12: Tiêu dùng Trách nhiệm", isEn ? "ESG: Environmental - Circular Economy" : "ESG: Môi trường - Kinh tế Tuần hoàn")}
+            <h4 class="card-section-title"><i class="fa-solid fa-recycle" style="color:#2E7D7D"></i> ${isEn ? 'Refurbishment Journey (3R)' : 'Hành Trình Làm Mới (3R)'}</h4>
+            <div style="display: flex; flex-direction: column; gap: 10px; text-align: left; font-size: 0.78rem;">
+              <div>
+                <strong>${isEn ? '🔧 Repair:' : '🔧 Repair (Sửa chữa):'}</strong> ${dpp.journeyRepair}
+              </div>
+              <div>
+                <strong>${isEn ? '✨ Refurbish:' : '✨ Refurbish (Làm mới):'}</strong> ${dpp.journeyRefurbish}
+              </div>
+              <div>
+                <strong>${isEn ? '✂️ Remaking/Redesign:' : '✂️ Remaking/Redesign (Thiết kế lại):'}</strong> ${dpp.journeyRedesign}
+              </div>
             </div>
           </div>
 
+
+          <!-- Socio-Economic Impact -->
+          <div class="dpp-passport-card">
+            ${renderDppBadges(isEn ? "SDG 8: Decent Work & Economic Growth" : "SDG 8: Việc làm tốt & Tăng trưởng Kinh tế", isEn ? "ESG: Social - Local Employment" : "ESG: Xã hội - Tạo việc làm Địa phương")}
+            <h4 class="card-section-title"><i class="fa-solid fa-people-carry-box" style="color:#8B5A2B"></i> ${isEn ? 'Socio-Economic Impact' : 'Tác Động Kinh Tế - Xã Hội'}</h4>
+            <div style="display: flex; gap: 12px; margin-top: 10px;">
+              <div style="flex: 1; background: #F8F6F1; border: 1px solid #E7E2D8; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 1.15rem; font-weight: 800; color: #8B5A2B;">${isEn ? '+24 Months' : '+24 Tháng'}</div>
+                <div style="font-size: 0.68rem; color: var(--gray-mid); margin-top: 4px; font-weight: 500;">${isEn ? 'Estimated product lifespan extension' : 'Tuổi thọ sản phẩm ước tính tăng thêm'}</div>
+              </div>
+              <div style="flex: 1; background: #F8F6F1; border: 1px solid #E7E2D8; border-radius: 8px; padding: 12px; text-align: center;">
+                <div style="font-size: 1.15rem; font-weight: 800; color: #2E7D7D;">${isEn ? '3 Artisans' : '3 Nhân Công'}</div>
+                <div style="font-size: 0.68rem; color: var(--gray-mid); margin-top: 4px; font-weight: 500;">${isEn ? 'Tailor jobs created' : 'Nghệ nhân thợ may được tạo việc làm'}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Supply Chain Provenance & Transit -->
+          <div class="dpp-passport-card">
+            ${renderDppBadges(isEn ? "SDG 9: Industry & Infrastructure" : "SDG 9: Công nghiệp & Hạ tầng", isEn ? "ESG: Environmental - Scope 3 Transport" : "ESG: Môi trường - Vận tải Phạm vi 3")}
+            <h4 class="card-section-title"><i class="fa-solid fa-map-location-dot" style="color:#2E7D7D"></i> ${isEn ? 'Supply Chain & Transit Transparency' : 'Chuỗi Cung Ứng & Minh Bạch Vận Tải'}</h4>
+            <div style="font-size: 0.75rem; text-align: left; margin-bottom: 12px; color: var(--gray-mid);">
+              <i class="fa-solid fa-truck-fast"></i> ${isEn 
+                ? `Total supply chain transport distance: <strong>${dpp.transportDistance} km</strong>.`
+                : `Tổng quãng đường vận chuyển chuỗi cung ứng: <strong>${dpp.transportDistance} km</strong>.`}
+            </div>
+            <div class="dpp-timeline">
+              
+              <!-- Tier 1 -->
+              <div class="dpp-timeline-node active" id="dpp-node-1">
+                <div class="dpp-node-indicator"></div>
+                <div class="dpp-node-summary" onclick="toggleDppNode(1)">
+                  <div>
+                    <span class="dpp-node-tier">${isEn ? 'Tier 1: Assembly & Distribution' : 'Tier 1: Hoàn thiện & Phân Phối'}</span>
+                    <div class="dpp-node-title">${dpp.tier1Name}</div>
+                  </div>
+                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
+                </div>
+                <div class="dpp-node-details">
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Location' : 'Địa điểm'}:</strong> ${dpp.tier1Loc}</p>
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Certification' : 'Chứng nhận'}:</strong> <span style="color:#2E7D7D">${dpp.tier1Cert}</span></p>
+                  <p>${dpp.tier1Desc}</p>
+                </div>
+              </div>
+
+              <!-- Tier 2 -->
+              <div class="dpp-timeline-node" id="dpp-node-2">
+                <div class="dpp-node-indicator"></div>
+                <div class="dpp-node-summary" onclick="toggleDppNode(2)">
+                  <div>
+                    <span class="dpp-node-tier">${isEn ? 'Tier 2: Upcycling Creative Studio' : 'Tier 2: Xưởng Tái Tạo Thiết Kế'}</span>
+                    <div class="dpp-node-title">${dpp.tier2Name}</div>
+                  </div>
+                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
+                </div>
+                <div class="dpp-node-details">
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Location' : 'Địa điểm'}:</strong> ${dpp.tier2Loc}</p>
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Certification' : 'Chứng nhận'}:</strong> <span style="color:#2E7D7D">${dpp.tier2Cert}</span></p>
+                  <p>${dpp.tier2Desc}</p>
+                </div>
+              </div>
+
+              <!-- Tier 3 -->
+              <div class="dpp-timeline-node" id="dpp-node-3">
+                <div class="dpp-node-indicator"></div>
+                <div class="dpp-node-summary" onclick="toggleDppNode(3)">
+                  <div>
+                    <span class="dpp-node-tier">${isEn ? 'Tier 3: Fiber Processing & Spin-Opening' : 'Tier 3: Trạm Xử Lý Vải Mộc'}</span>
+                    <div class="dpp-node-title">${dpp.tier3Name}</div>
+                  </div>
+                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
+                </div>
+                <div class="dpp-node-details">
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Location' : 'Địa điểm'}:</strong> ${dpp.tier3Loc}</p>
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Certification' : 'Chứng nhận'}:</strong> <span style="color:#2E7D7D">${dpp.tier3Cert}</span></p>
+                  <p>${dpp.tier3Desc}</p>
+                </div>
+              </div>
+
+              <!-- Tier 4 -->
+              <div class="dpp-timeline-node" id="dpp-node-4">
+                <div class="dpp-node-indicator"></div>
+                <div class="dpp-node-summary" onclick="toggleDppNode(4)">
+                  <div>
+                    <span class="dpp-node-tier">${isEn ? 'Tier 4: Material Sourcing & Collection' : 'Tier 4: Nguồn Vật Liệu Thu Gom'}</span>
+                    <div class="dpp-node-title">${dpp.tier4Name}</div>
+                  </div>
+                  <i class="fa-solid fa-chevron-right dpp-node-chevron"></i>
+                </div>
+                <div class="dpp-node-details">
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Location' : 'Địa điểm'}:</strong> ${dpp.tier4Loc}</p>
+                  <p style="margin-bottom:3px;"><strong>${isEn ? 'Certification' : 'Chứng nhận'}:</strong> <span style="color:#2E7D7D">${dpp.tier4Cert}</span></p>
+                  <p>${dpp.tier4Desc}</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1861,18 +2434,23 @@ function showDppModal(asin) {
   // Trigger LCA bar animations
   setTimeout(() => {
     const waterBar = document.getElementById('water-bar');
-    const co2Bar = document.getElementById('co2-bar');
+    const ecoBar = document.getElementById('eco-bar');
     if (waterBar) waterBar.style.width = '85%';
-    if (co2Bar) co2Bar.style.width = '90%';
+    if (ecoBar) ecoBar.style.width = '48%'; // intermediate value in 34.8% - 53.8%
   }, 100);
 }
-
 function closeDppModal() {
   const modal = document.getElementById('dpp-modal');
   if (modal) {
     modal.remove();
   }
 }
+
+// Attach functions to window scope so inline onclick handlers work
+window.getDppData = getDppData;
+window.showDppModal = showDppModal;
+window.closeDppModal = closeDppModal;
+
 
 function toggleDppNode(nodeId) {
   const node = document.getElementById(`dpp-node-${nodeId}`);
@@ -6154,6 +6732,15 @@ window.switchCase = function (c) {
 async function initApp() {
   await loadDataset();
   await initAdmin();
+
+  // Auto-open DPP modal if 'dpp' query parameter is present in the URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const dppAsin = urlParams.get('dpp');
+  if (dppAsin) {
+    setTimeout(() => {
+      showDppModal(dppAsin);
+    }, 500);
+  }
 }
 initApp();
 
