@@ -385,7 +385,7 @@ if (!sessionStorage.getItem('hr_session')) {
   localStorage.removeItem('hr_state');
   sessionStorage.setItem('hr_session', '1');
 }
-const SURVEY_VER = 'refashion_v3';
+const SURVEY_VER = 'refashion_v4';
 if (localStorage.getItem('survey_version') !== SURVEY_VER) {
   localStorage.removeItem('hr_questions');
   localStorage.removeItem('hr_state');

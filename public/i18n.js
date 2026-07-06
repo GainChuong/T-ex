@@ -71,7 +71,7 @@ const LANG = {
     step_end: "Kết thúc",
 
     // ── TOPBAR ──
-    topbar_title: "Khảo sát: Hệ thống gợi ý thời trang bền vững ReFashion",
+    topbar_title: "Khảo sát hệ thống kinh tế tuần hoàn ở lĩnh vực thời trang",
     topbar_subtitle: "Nghiên cứu khoa học về XAI & DPP · Khảo sát ẩn danh",
     restart: "Làm lại",
     restart_confirm: "Anh/chị có chắc chắn muốn làm lại từ đầu? Mọi thông tin đã nhập sẽ bị xóa.",
@@ -96,7 +96,7 @@ const LANG = {
 
     // ── CONSENT ──
     consent_title: "Thông tin nghiên cứu & đồng ý tham gia",
-    consent_p1: "Nghiên cứu này đo lường tác động của ba nhân tố: Gợi ý cá nhân hóa bằng AI (AI Personalization), Giải thích AI (XAI) và Hộ chiếu sản phẩm số (DPP) thông qua Nhận thức bền vững đến Lòng tin, từ đó thúc đẩy Ý định mua sắm của người dùng trên nền tảng thời trang tuần hoàn ReFashion.",
+    consent_p1: "Nghiên cứu này đo lường tác động của ba nhân tố: Gợi ý cá nhân hóa bằng AI (AI Personalization), Giải thích AI (XAI) và Hộ chiếu sản phẩm số (DPP) thông qua Nhận thức bền vững đến Lòng tin, từ đó thúc đẩy Ý định mua sắm của người dùng trên nền tảng thời trang tuần hoàn <strong>ReFashion</strong>.",
     consent_p2: 'Khảo sát <strong>hoàn toàn ẩn danh</strong> và không thu thập thông tin định danh cá nhân. Thời gian ước tính: 5-7 phút.',
     consent_agree: 'Tôi đã đọc thông tin trên và <strong>đồng ý tham gia</strong> khảo sát này.',
 
@@ -106,9 +106,9 @@ const LANG = {
 
     // ── CONTEXT ──
     context_title: "Bối cảnh trải nghiệm",
-    context_p1: 'Hãy tưởng tượng Anh/chị đang trải nghiệm tính năng gợi ý cá nhân hóa thời trang từ hệ thống AI của nền tảng thời trang tuần hoàn **ReFashion**.',
+    context_p1: 'Hãy tưởng tượng Anh/chị đang trải nghiệm tính năng gợi ý cá nhân hóa thời trang từ hệ thống AI của nền tảng thời trang tuần hoàn <strong>ReFashion</strong>.',
     context_p2: 'Hệ thống AI sẽ phân tích sở thích cá nhân của Anh/chị để đề xuất các sản phẩm gợi ý cá nhân hóa phù hợp nhất. Đồng thời, hệ thống cung cấp các thông tin giải thích lý do gợi ý (XAI) hoặc Hộ chiếu sản phẩm số (DPP) để nâng cao nhận thức bền vững và kiểm chứng nguồn gốc.',
-    context_p3: "Anh/chị chuẩn bị xem giao diện gợi ý cá nhân hóa thời trang của ReFashion. Hãy xem xét kỹ các sản phẩm được đề xuất cùng thông tin đi kèm (XAI hoặc DPP), sau đó trả lời các câu hỏi khảo sát.",
+    context_p3: "Anh/chị chuẩn bị xem giao diện gợi ý cá nhân hóa thời trang của <strong>ReFashion</strong>. Hãy xem xét kỹ các sản phẩm được đề xuất cùng thông tin đi kèm (XAI hoặc DPP), sau đó trả lời các câu hỏi khảo sát.",
     context_note: "Tình huống mang tính thử nghiệm trải nghiệm người dùng thực tế. Vui lòng phản hồi dựa trên cảm nhận chân thực nhất của Anh/chị.",
 
     // ── PROFILE ──
@@ -404,7 +404,7 @@ const LANG = {
     step_end: "Debrief",
 
     // ── TOPBAR ──
-    topbar_title: "ReFashion Sustainable Fashion Recommendation Survey",
+    topbar_title: "Circular Economy System Survey in the Fashion Industry",
     topbar_subtitle: "Scientific Study on XAI & DPP · Anonymous Survey",
     restart: "Restart",
     restart_confirm: "Are you sure you want to restart from the beginning? All entered information will be cleared.",
@@ -427,7 +427,7 @@ const LANG = {
 
     // ── CONSENT ──
     consent_title: "Research Information & Consent",
-    consent_p1: "This research measures the impact of three factors: AI Personalization, Explainable AI (XAI), and Digital Product Passport (DPP) through sustainability perception on consumer trust, thereby promoting purchase intention on the ReFashion circular fashion platform.",
+    consent_p1: "This research measures the impact of three factors: AI Personalization, Explainable AI (XAI), and Digital Product Passport (DPP) through sustainability perception on consumer trust, thereby promoting purchase intention on the <strong>ReFashion</strong> circular fashion platform.",
     consent_p2: 'The survey is <strong>completely anonymous</strong> and does not collect personally identifiable information. Estimated time: 5-7 minutes.',
     consent_agree: 'I have read the above information and <strong>agree to participate</strong> in this survey.',
 
@@ -437,9 +437,9 @@ const LANG = {
 
     // ── CONTEXT ──
     context_title: "Experience Scenario",
-    context_p1: 'Imagine you are experiencing the personalized fashion recommendation feature from the AI system of the sustainable circular fashion platform **ReFashion**.',
+    context_p1: 'Imagine you are experiencing the personalized fashion recommendation feature from the AI system of the sustainable circular fashion platform <strong>ReFashion</strong>.',
     context_p2: 'The AI system analyzes your style preferences to suggest the most suitable personalized products. Meanwhile, the system provides Explainable AI (XAI) explanations or a Digital Product Passport (DPP) to enhance sustainability perception and verify product origin.',
-    context_p3: "You are about to view ReFashion's personalized recommendations. Please review the recommended items and the accompanying info (XAI or DPP) carefully, then answer the survey questions.",
+    context_p3: "You are about to view <strong>ReFashion</strong>'s personalized recommendations. Please review the recommended items and the accompanying info (XAI or DPP) carefully, then answer the survey questions.",
     context_note: "This scenario is designed to test real user experience. Please respond based on your genuine impressions.",
 
     // ── PROFILE ──
