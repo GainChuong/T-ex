@@ -1,5 +1,5 @@
 /* ── CONFIG & STATE ── */
-/* ReFashion AI Stylist — NEW dedicated Supabase project */
+/* ReFashion AI Sustainable Recommendation — NEW dedicated Supabase project */
 const SUPABASE_URL = 'https://sdukxehicvdwstefopoz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_bpbxdrq7vyXs6rgpann5Iw_hqOdfUgo';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -495,7 +495,7 @@ function defaultQuestions(){
   const qs=[];let order=1;
   const generalInfoItems = [
     { id: 'resp_ft', text: 'Anh/chị có thường xuyên mua sắm quần áo trực tuyến không?', textEN: 'Do you frequently shop for clothes online?', type: 'radio', options: ['Có', 'Không'], optionsEN: ['Yes', 'No'], required: true, section: 'Thông tin chung', order: order++ },
-    { id: 'resp_eval', text: 'Anh/chị đã từng sử dụng công cụ hỗ trợ gợi ý trang phục bằng AI (AI Stylist) nào chưa?', textEN: 'Have you ever used an AI fashion stylist or recommendation tool?', type: 'radio', options: ['Có', 'Không'], optionsEN: ['Yes', 'No'], required: true, section: 'Thông tin chung', order: order++ },
+    { id: 'resp_eval', text: 'Anh/chị đã từng sử dụng công cụ hoặc hệ thống gợi ý cá nhân hóa thời trang bằng AI nào chưa?', textEN: 'Have you ever used an AI-powered personalized fashion recommendation tool?', type: 'radio', options: ['Có', 'Không'], optionsEN: ['Yes', 'No'], required: true, section: 'Thông tin chung', order: order++ },
     { id: 'resp_ai_dev', text: 'Anh/chị có quan tâm đến thời trang bền vững, quần áo tái chế (upcycling) không?', textEN: 'Are you interested in sustainable fashion or upcycled clothing?', type: 'radio', options: ['Có', 'Không'], optionsEN: ['Yes', 'No'], required: true, section: 'Thông tin chung', order: order++ },
     { id: 'resp_gender', text: 'Giới tính', textEN: 'Gender', type: 'radio', options: ['Nam', 'Nữ', 'Khác', 'Không muốn trả lời'], optionsEN: ['Male', 'Female', 'Other', 'Prefer not to say'], required: true, section: 'Thông tin chung', order: order++ },
     { id: 'resp_age', text: 'Độ tuổi', textEN: 'Age', type: 'radio', options: ['18-24', '25-34', '35-44', '45-54', 'Từ 55 trở lên'], optionsEN: ['18-24', '25-34', '35-44', '45-54', '55 and above'], required: true, section: 'Thông tin chung', order: order++ },
@@ -551,24 +551,24 @@ const CM={
 };
 const ITEMS={
   face:[
-    ['FC1','Tôi lo ngại bị mất hình ảnh trước người khác nếu trang phục do AI gợi ý không phù hợp với tôi.'],
-    ['FC2','Tôi quan tâm đến việc bảo vệ phong cách thời trang cá nhân của mình khi sử dụng gợi ý từ AI Stylist.'],
+    ['FC1','Tôi lo ngại bị mất hình ảnh trước người khác nếu sản phẩm do AI gợi ý không phù hợp với tôi.'],
+    ['FC2','Tôi quan tâm đến việc bảo vệ phong cách thời trang cá nhân của mình khi sử dụng gợi ý từ hệ thống AI.'],
     ['FC3','Tôi lo ngại người khác sẽ đánh giá tiêu cực hoặc cho rằng tôi có gu thời trang kém nếu mặc đồ tái chế (upcycling) từ ReFashion.'],
     ['FC4','Việc duy trì hình ảnh cá nhân chỉn chu và phong cách là quan trọng đối với tôi khi chọn trang phục.']
   ],
   mcT:[
-    ['MC_TBD1','Giao diện gợi ý của AI Stylist dường như được thiết kế để cung cấp thông tin minh bạch ngay từ đầu.'],
-    ['MC_TBD2','Thông tin giải thích hoặc Hộ chiếu Số DPP dường như là một phần không thể thiếu của hệ thống tư vấn thời trang này.'],
+    ['MC_TBD1','Giao diện gợi ý của ReFashion dường như được thiết kế để cung cấp thông tin minh bạch ngay từ đầu.'],
+    ['MC_TBD2','Thông tin giải thích hoặc Hộ chiếu sản phẩm số DPP dường như là một phần không thể thiếu của hệ thống gợi ý thời trang này.'],
     ['MC_TBD3','Hệ thống cung cấp thông tin rõ ràng về các sản phẩm và dữ liệu nguồn gốc.'],
-    ['MC_TBD4','Hệ thống giải thích rõ lý do hoặc tiêu chí vì sao bộ outfit này phù hợp với tôi.'],
-    ['MC_TBD5','Hệ thống cung cấp lời giải thích dễ hiểu (XAI) cho các gợi ý trang phục.'],
-    ['MC_TBD6','Hệ thống truyền đạt rõ ràng nguồn gốc và vòng đời sản phẩm thông qua Hộ chiếu Số DPP.'],
+    ['MC_TBD4','Hệ thống giải thích rõ lý do hoặc tiêu chí vì sao sản phẩm này phù hợp với tôi.'],
+    ['MC_TBD5','Hệ thống cung cấp lời giải thích dễ hiểu (XAI) cho các gợi ý thời trang.'],
+    ['MC_TBD6','Hệ thống truyền đạt rõ ràng nguồn gốc và vòng đời sản phẩm thông qua Hộ chiếu sản phẩm số DPP.'],
     ['MC_TBD7','Hệ thống giúp tôi dễ dàng xác thực tính chính xác của dữ liệu thời trang bền vững.']
   ],
   mcO:[
-    ['MC_OF1','Outfit gợi ý mà tôi nhận được từ AI Stylist là rất phù hợp và đẹp mắt.'],
-    ['MC_OF2','Các sản phẩm thời trang tái chế được đề xuất này rất có ích cho nhu cầu phối đồ của tôi.'],
-    ['MC_OF3','Gu phối đồ từ AI Stylist này đúng với những gì tôi mong muốn.']
+    ['MC_OF1','Các sản phẩm gợi ý mà tôi nhận được từ hệ thống AI là rất phù hợp và đẹp mắt.'],
+    ['MC_OF2','Các sản phẩm thời trang tái chế được đề xuất này rất có ích cho nhu cầu của tôi.'],
+    ['MC_OF3','Các gợi ý thời trang từ hệ thống AI này đúng với những gì tôi mong muốn.']
   ],
   xai:[
     ['XAI1','Tôi thấy phần giải thích của ReFashion dễ hiểu.'],
@@ -585,15 +585,15 @@ const ITEMS={
     ['PT2','Thông tin về quy trình phân phối quần áo, bao gồm từng giai đoạn vận chuyển và cách xử lý sản phẩm.']
   ],
   ct:[
-    ['CT1','Quảng cáo cá nhân hóa bằng AI trên các nền tảng số là đáng tin cậy.'],
-    ['CT2','Tôi có thể tin tưởng quảng cáo cá nhân hóa bằng AI trên các nền tảng số.']
+    ['CT1','Hệ thống gợi ý thời trang tuần hoàn ReFashion là đáng tin cậy.'],
+    ['CT2','Tôi có thể tin tưởng vào những gợi ý thời trang từ hệ thống ReFashion.']
   ],
   pi:[
-    ['PI1','Tôi có ý định mua quần áo được đề xuất qua hệ thống gợi ý bằng AI trên nền tảng số.'],
-    ['PI2','Tôi sẵn lòng trả giá cao hơn cho các sản phẩm bền vững so với các sản phẩm khác.']
+    ['PI1','Tôi có ý định mua quần áo được gợi ý qua hệ thống AI trên nền tảng ReFashion.'],
+    ['PI2','Tôi sẵn lòng trả giá cao hơn cho các sản phẩm thời trang bền vững được gợi ý trên ReFashion so với các sản phẩm thông thường.']
   ],
   ec:[
-    ['EC1','Tôi rất quan tâm đến các vấn đề môi trường hiện nay.']
+    ['EC1','Tôi rất quan tâm đến các vấn đề bảo vệ môi trường và thời trang bền vững.']
   ]
 };
 

@@ -216,13 +216,13 @@ def call_llm_for_explanation(cand_title, cand_store, cand_features, h_title, h_s
     h_style = h_styles[0] if h_styles else "chưa xác định"
 
     prompt = (
-        "Bạn là chuyên gia tư vấn thời trang AI (ReFashion AI). "
+        "Bạn là hệ thống gợi ý thời trang tuần hoàn AI (ReFashion AI). "
         "Hãy viết một lời giải thích ngắn gọn, tự nhiên và chuyên nghiệp bằng tiếng Việt "
         "giải thích lý do tại sao sản phẩm gợi ý lại phù hợp với người dùng:\n"
         f"- Sản phẩm gợi ý: \"{cand_title}\" (Danh mục: {cand_store}, Màu: {cand_color}, Kiểu: {cand_style})\n"
         f"- Sản phẩm người dùng đã chọn: \"{h_title}\" (Danh mục: {h_store}, Màu: {h_color}, Kiểu: {h_style})\n"
         f"- Lý do AI gợi ý: {strategy_desc}\n\n"
-        "Yêu cầu: Viết đúng 2 câu hoàn chỉnh, thân thiện như Stylist, "
+        "Yêu cầu: Viết đúng 2 câu hoàn chỉnh, thân thiện và chuyên nghiệp, "
         "có gợi ý phối đồ cụ thể. Không dùng thuật ngữ kỹ thuật."
     )
 

@@ -46,7 +46,13 @@ const SECTION_NAMES = {
   'Biến kiểm soát':        { vi: 'Biến kiểm soát',        en: 'Control Variables' },
   'Control Variables':     { vi: 'Biến kiểm soát',        en: 'Control Variables' },
   'Face Concern':          { vi: 'Mối quan tâm thể diện', en: 'Face Concern' },
-  'Mối quan tâm thể diện':{ vi: 'Mối quan tâm thể diện', en: 'Face Concern' }
+  'Mối quan tâm thể diện':{ vi: 'Mối quan tâm thể diện', en: 'Face Concern' },
+  'XAI': { vi: 'Giải thích AI (XAI)', en: 'Explainable AI (XAI)' },
+  'AI Personalization (AIP)': { vi: 'Gợi ý cá nhân hóa AI (AIP)', en: 'AI Personalization (AIP)' },
+  'Product Traceability': { vi: 'Truy xuất nguồn gốc sản phẩm (PT)', en: 'Product Traceability (PT)' },
+  'Consumer Trust': { vi: 'Lòng tin người dùng (CT)', en: 'Consumer Trust (CT)' },
+  'Purchase Intention': { vi: 'Ý định mua sắm (PI)', en: 'Purchase Intention (PI)' },
+  'Environment concern': { vi: 'Nhận thức bền vững (EC)', en: 'Sustainability Awareness (EC)' }
 };
 
 const LANG = {
@@ -65,7 +71,7 @@ const LANG = {
     step_end: "Kết thúc",
 
     // ── TOPBAR ──
-    topbar_title: "Khảo sát: Trợ lý Gợi ý Trang phục AI Stylist",
+    topbar_title: "Khảo sát: Hệ thống gợi ý thời trang bền vững ReFashion",
     topbar_subtitle: "Nghiên cứu khoa học về XAI & DPP · Khảo sát ẩn danh",
     restart: "Làm lại",
     restart_confirm: "Anh/chị có chắc chắn muốn làm lại từ đầu? Mọi thông tin đã nhập sẽ bị xóa.",
@@ -90,19 +96,19 @@ const LANG = {
 
     // ── CONSENT ──
     consent_title: "Thông tin nghiên cứu & đồng ý tham gia",
-    consent_p1: "Nghiên cứu này khảo sát trải nghiệm người dùng đối với Trợ lý gợi ý trang phục thời trang AI (AI Stylist) kết hợp giải thích đề xuất (XAI) và Hộ chiếu sản phẩm số (DPP).",
+    consent_p1: "Nghiên cứu này đo lường tác động của ba nhân tố: Gợi ý cá nhân hóa bằng AI (AI Personalization), Giải thích AI (XAI) và Hộ chiếu sản phẩm số (DPP) thông qua Nhận thức bền vững đến Lòng tin, từ đó thúc đẩy Ý định mua sắm của người dùng trên nền tảng thời trang tuần hoàn ReFashion.",
     consent_p2: 'Khảo sát <strong>hoàn toàn ẩn danh</strong> và không thu thập thông tin định danh cá nhân. Thời gian ước tính: 5-7 phút.',
     consent_agree: 'Tôi đã đọc thông tin trên và <strong>đồng ý tham gia</strong> khảo sát này.',
 
     // ── INITIAL QUESTIONS ──
     initial_title: "Một số câu hỏi về cảm nhận cá nhân",
-    initial_desc: "Vui lòng trả lời theo cảm nhận chung trước khi xem trợ lý gợi ý trang phục.",
+    initial_desc: "Vui lòng trả lời theo cảm nhận chung trước khi xem hệ thống gợi ý cá nhân hóa thời trang.",
 
     // ── CONTEXT ──
     context_title: "Bối cảnh trải nghiệm",
-    context_p1: 'Hãy tưởng tượng Anh/chị đang trải nghiệm tính năng gợi ý trang phục từ Trợ lý AI Stylist của thương hiệu thời trang bền vững **ReFashion**.',
-    context_p2: 'Hệ thống AI Stylist sẽ phân tích sở thích cá nhân của Anh/chị và đề xuất các sản phẩm thời trang tái chế (upcycling) phù hợp nhất. Đồng thời, hệ thống cung cấp các thông tin giải thích lý do gợi ý (XAI) hoặc Hộ chiếu Sản phẩm Số (Digital Product Passport - DPP) để kiểm chứng nguồn gốc.',
-    context_p3: "Anh/chị chuẩn bị xem giao diện gợi ý của AI Stylist. Hãy xem xét kỹ các sản phẩm được đề xuất cùng thông tin đi kèm, sau đó trả lời các câu hỏi khảo sát.",
+    context_p1: 'Hãy tưởng tượng Anh/chị đang trải nghiệm tính năng gợi ý cá nhân hóa thời trang từ hệ thống AI của nền tảng thời trang tuần hoàn **ReFashion**.',
+    context_p2: 'Hệ thống AI sẽ phân tích sở thích cá nhân của Anh/chị để đề xuất các sản phẩm gợi ý cá nhân hóa phù hợp nhất. Đồng thời, hệ thống cung cấp các thông tin giải thích lý do gợi ý (XAI) hoặc Hộ chiếu sản phẩm số (DPP) để nâng cao nhận thức bền vững và kiểm chứng nguồn gốc.',
+    context_p3: "Anh/chị chuẩn bị xem giao diện gợi ý cá nhân hóa thời trang của ReFashion. Hãy xem xét kỹ các sản phẩm được đề xuất cùng thông tin đi kèm (XAI hoặc DPP), sau đó trả lời các câu hỏi khảo sát.",
     context_note: "Tình huống mang tính thử nghiệm trải nghiệm người dùng thực tế. Vui lòng phản hồi dựa trên cảm nhận chân thực nhất của Anh/chị.",
 
     // ── PROFILE ──
@@ -159,8 +165,8 @@ const LANG = {
     survey_ai_exp: "Đã dùng AI trong công việc?",
     survey_ai_fam_1: "Rất thấp", survey_ai_fam_2: "Thấp", survey_ai_fam_3: "Trung bình", survey_ai_fam_4: "Cao", survey_ai_fam_5: "Rất cao",
     survey_ai_exp_1: "Chưa từng", survey_ai_exp_2: "Thỉnh thoảng", survey_ai_exp_3: "Thường xuyên",
-    survey_score_q: 'Trong giao diện gợi ý của AI Stylist, tỷ lệ hợp (%) của sản phẩm đầu tiên được gợi ý là bao nhiêu?',
-    survey_detail_q: 'Theo Anh/chị, các thông tin giải thích (XAI) hoặc Hộ chiếu Sản phẩm Số (DPP) đi kèm cung cấp mức độ chi tiết như thế nào?',
+    survey_score_q: 'Trong giao diện gợi ý cá nhân hóa của ReFashion, tỷ lệ phù hợp (%) của sản phẩm đầu tiên được gợi ý là bao nhiêu?',
+    survey_detail_q: 'Theo Anh/chị, các thông tin giải thích (XAI) hoặc Hộ chiếu sản phẩm số (DPP) đi kèm cung cấp mức độ chi tiết như thế nào?',
     survey_detail_label_start: 'Rất sơ sài',
     survey_detail_label_end: 'Rất chi tiết',
     survey_email_q: 'Nếu Anh/chị có nhu cầu nhận kết quả của nghiên cứu này, chúng tôi sẵn sàng cung cấp sau khi hoàn thành, vui lòng nhập địa chỉ email của Anh/chị hoặc gõ "Không" nếu Anh/chị không có nhu cầu.',
@@ -169,7 +175,7 @@ const LANG = {
 
     // ── DEBRIEF ──
     debrief_title: "Cảm ơn Anh/chị đã tham gia khảo sát!",
-    debrief_desc: "Giao diện và trợ lý gợi ý trong khảo sát là giả lập nghiên cứu. Mọi phản hồi của Anh/chị được lưu trữ hoàn toàn ẩn danh và chỉ sử dụng cho mục đích nghiên cứu khoa học.",
+    debrief_desc: "Giao diện và hệ thống gợi ý trong khảo sát là giả lập nghiên cứu. Mọi phản hồi của Anh/chị được lưu trữ hoàn toàn ẩn danh và chỉ sử dụng cho mục đích nghiên cứu khoa học.",
     debrief_dl_json: "Tải phản hồi (JSON)",
     debrief_dl_csv: "Tải phản hồi (CSV)",
 
@@ -392,13 +398,13 @@ const LANG = {
     step_context: "Experience Scenario",
     step_profile: "Personal Information",
     step_context_profile_combined: "Scenario & Profile",
-    step_report: "AI Stylist Advice",
+    step_report: "ReFashion AI Recommendations",
     step_survey: "Evaluation",
     step_controls: "General Information",
     step_end: "Debrief",
 
     // ── TOPBAR ──
-    topbar_title: "AI Stylist Recommendation Survey",
+    topbar_title: "ReFashion Sustainable Fashion Recommendation Survey",
     topbar_subtitle: "Scientific Study on XAI & DPP · Anonymous Survey",
     restart: "Restart",
     restart_confirm: "Are you sure you want to restart from the beginning? All entered information will be cleared.",
@@ -421,19 +427,19 @@ const LANG = {
 
     // ── CONSENT ──
     consent_title: "Research Information & Consent",
-    consent_p1: "This research explores users' perceptions of an AI-assisted fashion styling assistant (AI Stylist) combined with Explainable AI (XAI) and Digital Product Passport (DPP).",
+    consent_p1: "This research measures the impact of three factors: AI Personalization, Explainable AI (XAI), and Digital Product Passport (DPP) through sustainability perception on consumer trust, thereby promoting purchase intention on the ReFashion circular fashion platform.",
     consent_p2: 'The survey is <strong>completely anonymous</strong> and does not collect personally identifiable information. Estimated time: 5-7 minutes.',
     consent_agree: 'I have read the above information and <strong>agree to participate</strong> in this survey.',
 
     // ── INITIAL QUESTIONS ──
     initial_title: "Some questions about personal feelings",
-    initial_desc: "Please answer based on your general feelings before viewing the AI Stylist recommendations.",
+    initial_desc: "Please answer based on your general feelings before viewing the AI-powered personalized fashion recommendations.",
 
     // ── CONTEXT ──
     context_title: "Experience Scenario",
-    context_p1: 'Imagine you are experiencing the outfit recommendation feature from the AI Stylist assistant of the sustainable fashion brand **ReFashion**.',
-    context_p2: 'The AI Stylist analyzes your style preferences and suggests suitable upcycled clothing items. The system also provides Explainable AI (XAI) styling advice or a Digital Product Passport (DPP) to verify sustainability provenance.',
-    context_p3: "You are about to view the AI Stylist's recommendations. Please review the proposed outfits and accompanying info carefully, then answer the survey questions.",
+    context_p1: 'Imagine you are experiencing the personalized fashion recommendation feature from the AI system of the sustainable circular fashion platform **ReFashion**.',
+    context_p2: 'The AI system analyzes your style preferences to suggest the most suitable personalized products. Meanwhile, the system provides Explainable AI (XAI) explanations or a Digital Product Passport (DPP) to enhance sustainability perception and verify product origin.',
+    context_p3: "You are about to view ReFashion's personalized recommendations. Please review the recommended items and the accompanying info (XAI or DPP) carefully, then answer the survey questions.",
     context_note: "This scenario is designed to test real user experience. Please respond based on your genuine impressions.",
 
     // ── PROFILE ──
@@ -490,7 +496,7 @@ const LANG = {
     survey_ai_exp: "Have you used AI at work?",
     survey_ai_fam_1: "Very Low", survey_ai_fam_2: "Low", survey_ai_fam_3: "Medium", survey_ai_fam_4: "High", survey_ai_fam_5: "Very High",
     survey_ai_exp_1: "Never", survey_ai_exp_2: "Occasionally", survey_ai_exp_3: "Frequently",
-    survey_score_q: 'In the styling recommendation interface, what is the match percentage (%) of the first recommended product?',
+    survey_score_q: 'In the ReFashion recommendation interface, what is the match percentage (%) of the first recommended product?',
     survey_detail_q: 'According to you, how detailed is the explanation (XAI) or Digital Product Passport (DPP) information provided?',
     survey_detail_label_start: 'Very brief',
     survey_detail_label_end: 'Very detailed',
@@ -500,7 +506,7 @@ const LANG = {
 
     // ── DEBRIEF ──
     debrief_title: "Thank you for participating in the survey!",
-    debrief_desc: "The styling recommendations and interface shown in this survey are simulated for research. Your responses are stored completely anonymously and used only for academic research.",
+    debrief_desc: "The fashion recommendations and interface shown in this survey are simulated for research. Your responses are stored completely anonymously and used only for academic research.",
     debrief_dl_json: "Download Response (JSON)",
     debrief_dl_csv: "Download Response (CSV)",
 
@@ -724,24 +730,24 @@ const LANG = {
 // ── Question translations (survey items) ──
 const ITEMS_EN = {
   face: [
-    ['FC1','I would be concerned about losing my fashion image if the outfits recommended by the AI did not suit me.'],
-    ['FC2','I care about protecting my personal style when receiving recommendations from the AI Stylist.'],
+    ['FC1','I would be concerned about losing my fashion image if the clothes recommended by the AI did not suit me.'],
+    ['FC2','I care about protecting my personal style when receiving recommendations from the AI system.'],
     ['FC3','I worry that others would judge me negatively or think I have poor style if I wore upcycled clothes from ReFashion.'],
     ['FC4','Maintaining a neat and stylish personal image is important to me when selecting outfits.']
   ],
   mcT: [
-    ['MC_TBD1','The AI Stylist recommendation interface appears to be designed with transparency from the outset.'],
-    ['MC_TBD2','The styling explanation or DPP Passport seems to be integrated as an essential part of this styling system.'],
+    ['MC_TBD1','The ReFashion recommendation interface appears to be designed with transparency from the outset.'],
+    ['MC_TBD2','The styling explanation or DPP Passport seems to be integrated as an essential part of this recommendation system.'],
     ['MC_TBD3','The system provides clear information about the products and their sustainability provenance.'],
-    ['MC_TBD4','The system clearly explains the reasons or criteria why this outfit suits me.'],
-    ['MC_TBD5','The system provides understandable explanations (XAI) for outfit recommendations.'],
+    ['MC_TBD4','The system clearly explains the reasons or criteria why this product suits me.'],
+    ['MC_TBD5','The system provides understandable explanations (XAI) for fashion recommendations.'],
     ['MC_TBD6','The system clearly communicates product origin and lifecycle via the Digital Product Passport (DPP).'],
     ['MC_TBD7','The system helps me easily verify the reliability of sustainable fashion claims.']
   ],
   mcO: [
-    ['MC_OF1','The styling recommendations I received from the AI Stylist are favorable and appealing.'],
-    ['MC_OF2','These recommended upcycled fashion items are beneficial for my wardrobe coordination.'],
-    ['MC_OF3','The styling suggestions from the AI Stylist match what I desired.']
+    ['MC_OF1','The personalized recommendations I received from the AI system are favorable and appealing.'],
+    ['MC_OF2','These recommended upcycled fashion items are beneficial for my needs.'],
+    ['MC_OF3','The fashion suggestions from the AI system match what I desired.']
   ],
   xai: [
     ['XAI1','I found the explanation of ReFashion to be easily understandable.'],
@@ -758,15 +764,15 @@ const ITEMS_EN = {
     ['PT2','Information about the clothing distribution process, including each stage of transportation and how the goods are handled.']
   ],
   ct: [
-    ['CT1','AI-powered personalized advertising on digital platforms is trustworthy.'],
-    ['CT2','I can trust AI-powered personalized advertising on digital platforms.']
+    ['CT1','The ReFashion circular fashion recommendation system is trustworthy.'],
+    ['CT2','I can trust the fashion recommendations from the ReFashion system.']
   ],
   pi: [
-    ['PI1','I intend to buy clothing suggested through an AI-powered recommendation system on a digital platform.'],
-    ['PI2','I am willing to pay a higher price for sustainable products than for other products.']
+    ['PI1','I intend to buy clothing suggested through the AI system on the ReFashion platform.'],
+    ['PI2','I am willing to pay a higher price for sustainable fashion products suggested on ReFashion than for conventional products.']
   ],
   ec: [
-    ['EC1','I am very concerned about current environmental issues.']
+    ['EC1','I am highly concerned about environmental protection and sustainable fashion.']
   ],
   att: [
     ['ATT1','I am carefully reading the instructions in this survey.']

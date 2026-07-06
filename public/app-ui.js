@@ -1324,7 +1324,7 @@ async function submitSelections() {
     <div class="rec-view-container">
       <div style="text-align:center; padding:60px 0;">
         <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--blue); margin-bottom: 1rem;"></i>
-        <h3 style="font-family:var(--font-serif); color:var(--black); font-size:1.25rem;">AI Stylist đang thiết kế outfit cho bạn...</h3>
+        <h3 style="font-family:var(--font-serif); color:var(--black); font-size:1.25rem;">ReFashion AI đang tạo đề xuất cá nhân hóa cho bạn...</h3>
         <p style="color:var(--gray-mid); font-size:0.9rem; margin-top:8px;">Vui lòng đợi trong giây lát</p>
       </div>
     </div>
@@ -1412,8 +1412,8 @@ function renderRecommendationsView() {
   const header = document.createElement('div');
   header.className = 'rec-view-header';
   header.innerHTML = `
-    <h2>👑 So Sánh Lựa Chọn & Gợi Ý Outfit</h2>
-    <p>Đối chiếu các sản phẩm bạn đã chọn với các đề xuất tối ưu hóa từ Stylist AI</p>
+    <h2>👑 So Sánh Lựa Chọn & Gợi Ý Từ AI</h2>
+    <p>Đối chiếu các sản phẩm bạn đã chọn với các đề xuất cá nhân hóa từ ReFashion AI</p>
   `;
   recContainer.appendChild(header);
 
@@ -1489,7 +1489,7 @@ function renderRecommendationsView() {
     let rightHtml = `
       <div class="comparison-column">
         <div class="comparison-title-badge rec-badge">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Stylist AI Gợi Ý
+          <i class="fa-solid fa-wand-magic-sparkles"></i> ReFashion AI Gợi Ý
         </div>
     `;
 
@@ -1515,7 +1515,7 @@ function renderRecommendationsView() {
         }
         explanationHtml = `
           <div class="xai-explanation-content" style="margin-top: 10px;">
-            <div class="xai-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Stylist AI Tư Vấn:</div>
+            <div class="xai-title"><i class="fa-solid fa-wand-magic-sparkles"></i> ReFashion AI Tư Vấn:</div>
             ${cleanExplanation}
           </div>
         `;
@@ -2583,10 +2583,10 @@ function renderProfileAndDashboard() {
         <!-- Sidebar Summary -->
         <aside class="shop-sidebar">
           <h3 class="sidebar-title">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Stylist Onboarding
+            <i class="fa-solid fa-wand-magic-sparkles"></i> ReFashion Onboarding
           </h3>
           <p class="sidebar-desc">
-            Chọn từ <strong>1 đến 3 sản phẩm</strong> yêu thích trong mỗi danh mục bên dưới để AI phân tích phong cách cá nhân của bạn.
+            Chọn từ <strong>1 đến 3 sản phẩm</strong> yêu thích trong mỗi danh mục bên dưới để AI phân tích sở thích cá nhân và đưa ra gợi ý phù hợp.
           </p>
 
           <div class="category-status-list">
