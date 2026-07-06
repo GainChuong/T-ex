@@ -743,32 +743,30 @@ const ITEMS_EN = {
     ['MC_OF2','These recommended upcycled fashion items are beneficial for my wardrobe coordination.'],
     ['MC_OF3','The styling suggestions from the AI Stylist match what I desired.']
   ],
-  role: [
-    ['RA1','I feel the AI system is an appropriate agent to support fashion styling tasks.'],
-    ['RA2','The role of AI in this styling recommendation process is appropriate.'],
-    ['RA3','AI participation in coordinate recommendation aligns with my expectations of technology in fashion.']
+  xai: [
+    ['XAI1','I found the explanation of ReFashion to be easily understandable.'],
+    ['XAI2','I think the results of ReFashion are interpretable.']
   ],
-  pf: [
-    ['PF1','I have the opportunity to select input products to customize the AI Stylist\'s recommendations.'],
-    ['PF2','I can easily reset and ask for new recommendations if the results do not reflect my style.'],
-    ['PF3','The recommendation process is applied consistently.'],
-    ['PF4','The recommendation process helps personalize styling without biases.'],
-    ['PF5','The recommendation process is based on relevant fashion and styling information.'],
-    ['PF6','The recommendation process and DPP comply with ethical and environmental standards.']
+  aip: [
+    ['AIP1','The AI-powered personalization feature of the ReFashion recommendation system provides purchase suggestions tailored to my needs.'],
+    ['AIP2','The AI-powered personalization feature of the ReFashion recommendation system allows me to order products designed specifically for me.'],
+    ['AIP3','The AI-powered personalization feature of the ReFashion recommendation system is customized to my needs.'],
+    ['AIP4','The AI-powered personalization feature of the ReFashion recommendation system is adapted to my circumstances.']
   ],
-  trust: [
-    ['CT1','I believe the AI system performs well in supporting style coordination.'],
-    ['CT2','I believe the AI system has the necessary competence to suggest high-quality outfits.'],
-    ['CT3','I believe the AI system processes my style preferences reliably.'],
-    ['CT4','I believe the AI system applies styling criteria consistently when suggesting outfits.']
+  pt: [
+    ['PT1','In addition to the basic information about the product (composition, place of manufacture, expiry date, ..), product traceability also helps identify counterfeit goods.'],
+    ['PT2','Information about the clothing distribution process, including each stage of transportation and how the goods are handled.']
   ],
-  accept: [
-    ['DA1','I am willing to accept the outfit recommendations provided by the AI Stylist.'],
-    ['DA2','I intend to use the AI Stylist recommendations as a useful reference for my personal style.'],
-    ['DA3','I am willing to follow coordination advice provided by the AI Stylist.'],
-    ['DA4','If the brand continues to offer this AI Stylist, I intend to continue using it.'],
-    ['DA5','I tend to support the brand\'s use of an AI Stylist and DPP in fashion shopping.'],
-    ['DA6','I would consider purchasing the clothing items recommended by this AI Stylist system.']
+  ct: [
+    ['CT1','AI-powered personalized advertising on digital platforms is trustworthy.'],
+    ['CT2','I can trust AI-powered personalized advertising on digital platforms.']
+  ],
+  pi: [
+    ['PI1','I intend to buy clothing suggested through an AI-powered recommendation system on a digital platform.'],
+    ['PI2','I am willing to pay a higher price for sustainable products than for other products.']
+  ],
+  ec: [
+    ['EC1','I am very concerned about current environmental issues.']
   ],
   att: [
     ['ATT1','I am carefully reading the instructions in this survey.']

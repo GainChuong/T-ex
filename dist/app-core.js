@@ -296,7 +296,7 @@ function getSurveySectionDivisionRaw(qs, useDraft = false) {
     } else if (phase === 'ctrl') {
       ctrlSections.push(sec);
     } else {
-      const defaultPost = ['MC: Kết quả', 'Role Appropriateness', 'Procedural Fairness', 'Cognitive Trust', 'Decision Acceptance', 'MC: Kết quả (English)'];
+      const defaultPost = ['MC: Kết quả', 'XAI', 'AI Personalization (AIP)', 'Product Traceability', 'Consumer Trust', 'Purchase Intention', 'Environment concern', 'MC: Kết quả (English)'];
       const defaultCtrl = ['MC: Minh bạch', 'MC: Minh bạch (English)', 'Biến kiểm soát'];
       if (defaultPost.includes(sec)) {
         postSections.push(sec);
@@ -511,8 +511,12 @@ function defaultQuestions(){
   });
   addGroup('Câu hỏi ban đầu',ITEMS.face);
   addGroup('MC: Minh bạch',ITEMS.mcT);addGroup('MC: Kết quả',ITEMS.mcO);
-  addGroup('Role Appropriateness',ITEMS.role);addGroup('Procedural Fairness',ITEMS.pf);
-  addGroup('Cognitive Trust',ITEMS.trust);addGroup('Decision Acceptance',ITEMS.accept);
+  addGroup('XAI',ITEMS.xai);
+  addGroup('AI Personalization (AIP)',ITEMS.aip);
+  addGroup('Product Traceability',ITEMS.pt);
+  addGroup('Consumer Trust',ITEMS.ct);
+  addGroup('Purchase Intention',ITEMS.pi);
+  addGroup('Environment concern',ITEMS.ec);
   // Biến kiểm soát — câu hỏi cuối sau survey chính
   const ctrlItems = [
     { id: 'CTRL_AI_FAM', text: 'Mức độ am hiểu của Anh/chị về các hệ thống trí tuệ nhân tạo (AI)?', textEN: 'How familiar are you with artificial intelligence (AI) systems?', type: 'select', options: ['Rất thấp', 'Thấp', 'Trung bình', 'Cao', 'Rất cao'], optionsEN: ['Very low', 'Low', 'Medium', 'High', 'Very high'], required: true, section: 'Biến kiểm soát', order: order++ },
@@ -566,32 +570,30 @@ const ITEMS={
     ['MC_OF2','Các sản phẩm thời trang tái chế được đề xuất này rất có ích cho nhu cầu phối đồ của tôi.'],
     ['MC_OF3','Gu phối đồ từ AI Stylist này đúng với những gì tôi mong muốn.']
   ],
-  role:[
-    ['RA1','Tôi cảm thấy hệ thống AI Stylist là một trợ lý phù hợp để tư vấn phong cách thời trang.'],
-    ['RA2','Vai trò của AI trong việc phân tích phong cách và đề xuất trang phục là hợp lý.'],
-    ['RA3','Việc AI tham gia hỗ trợ phối đồ phù hợp với kỳ vọng của tôi về ứng dụng công nghệ trong thời trang.']
+  xai:[
+    ['XAI1','Tôi thấy phần giải thích của ReFashion dễ hiểu.'],
+    ['XAI2','Tôi nghĩ kết quả của ReFashion có thể giải thích được.']
   ],
-  pf:[
-    ['PF1','Tôi có cơ hội tự chọn các sản phẩm làm đầu vào để điều chỉnh gợi ý của AI Stylist.'],
-    ['PF2','Tôi có thể dễ dàng yêu cầu gợi ý lại (Reset) nếu kết quả không phản ánh đúng gu của tôi.'],
-    ['PF3','Quy trình gợi ý trang phục của AI được áp dụng nhất quán.'],
-    ['PF4','Quy trình gợi ý giúp giảm định kiến và cá nhân hóa đúng nhu cầu.'],
-    ['PF5','Quy trình gợi ý dựa trên thông tin thời trang phù hợp và liên quan.'],
-    ['PF6','Quy trình gợi ý và Hộ chiếu Số DPP tuân thủ các chuẩn mực đạo đức về môi trường và lao động.']
+  aip:[
+    ['AIP1','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion cung cấp các đề xuất mua sắm phù hợp với nhu cầu của tôi.'],
+    ['AIP2','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion cho phép tôi chọn các sản phẩm được thiết kế riêng cho mình.'],
+    ['AIP3','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion được tùy chỉnh theo nhu cầu của tôi.'],
+    ['AIP4','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion thích nghi với hoàn cảnh của tôi.']
   ],
-  trust:[
-    ['CT1','Tôi tin rằng hệ thống AI Stylist hoạt động tốt trong việc hỗ trợ phối đồ.'],
-    ['CT2','Tôi tin rằng hệ thống AI Stylist có năng lực cần thiết để đưa ra gợi ý thời trang chất lượng.'],
-    ['CT3','Tôi tin rằng hệ thống AI Stylist xử lý thông tin sở thích của tôi một cách đáng tin cậy.'],
-    ['CT4','Tôi tin rằng hệ thống AI Stylist áp dụng tiêu chí lựa chọn nhất quán khi đề xuất outfit.']
+  pt:[
+    ['PT1','Ngoài thông tin cơ bản về sản phẩm (thành phần, nơi sản xuất, hạn sử dụng, ..), việc truy xuất nguồn gốc sản phẩm còn giúp nhận diện hàng giả.'],
+    ['PT2','Thông tin về quy trình phân phối quần áo, bao gồm từng giai đoạn vận chuyển và cách xử lý sản phẩm.']
   ],
-  accept:[
-    ['DA1','Tôi sẵn sàng chấp nhận các đề xuất trang phục do AI Stylist gợi ý.'],
-    ['DA2','Tôi dự định sử dụng gợi ý của AI Stylist như một nguồn tham khảo hữu ích cho phong cách của mình.'],
-    ['DA3','Tôi sẵn sàng làm theo các tư vấn phối đồ do hệ thống AI Stylist cung cấp.'],
-    ['DA4','Nếu nhãn hàng tiếp tục cung cấp AI Stylist này, tôi dự định sẽ tiếp tục sử dụng.'],
-    ['DA5','Tôi ủng hộ việc ứng dụng AI Stylist và Hộ chiếu Số DPP trong mua sắm thời trang.'],
-    ['DA6','Tôi sẽ cân nhắc mua sắm các sản phẩm thời trang do hệ thống AI Stylist này gợi ý.']
+  ct:[
+    ['CT1','Quảng cáo cá nhân hóa bằng AI trên các nền tảng số là đáng tin cậy.'],
+    ['CT2','Tôi có thể tin tưởng quảng cáo cá nhân hóa bằng AI trên các nền tảng số.']
+  ],
+  pi:[
+    ['PI1','Tôi có ý định mua quần áo được đề xuất qua hệ thống gợi ý bằng AI trên nền tảng số.'],
+    ['PI2','Tôi sẵn lòng trả giá cao hơn cho các sản phẩm bền vững so với các sản phẩm khác.']
+  ],
+  ec:[
+    ['EC1','Tôi rất quan tâm đến các vấn đề môi trường hiện nay.']
   ]
 };
 
