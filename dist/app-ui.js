@@ -2586,7 +2586,7 @@ function renderProfileAndDashboard() {
             <i class="fa-solid fa-wand-magic-sparkles"></i> ReFashion Onboarding
           </h3>
           <p class="sidebar-desc">
-            Chọn từ <strong>1 đến 3 sản phẩm</strong> yêu thích trong mỗi danh mục bên dưới để AI phân tích sở thích cá nhân và đưa ra gợi ý phù hợp.
+            Chọn từ <strong>1 đến 3 sản phẩm</strong> yêu thích trong mỗi danh mục bên dưới để AI gợi ý trang phục phù hợp.
           </p>
 
           <div class="category-status-list">

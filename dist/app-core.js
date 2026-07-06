@@ -553,11 +553,11 @@ const ITEMS={
   face:[
     ['FC1','Tôi lo ngại bị mất hình ảnh trước người khác nếu sản phẩm do AI gợi ý không phù hợp với tôi.'],
     ['FC2','Tôi quan tâm đến việc bảo vệ phong cách thời trang cá nhân của mình khi sử dụng gợi ý từ hệ thống AI.'],
-    ['FC3','Tôi lo ngại người khác sẽ đánh giá tiêu cực hoặc cho rằng tôi có gu thời trang kém nếu mặc đồ tái chế (upcycling) từ ReFashion.'],
+    ['FC3','Tôi lo ngại người khác sẽ đánh giá tiêu cực hoặc cho rằng tôi có gu thời trang kém nếu mặc đồ tái chế (upcycling) từ <strong>ReFashion</strong>.'],
     ['FC4','Việc duy trì hình ảnh cá nhân chỉn chu và phong cách là quan trọng đối với tôi khi chọn trang phục.']
   ],
   mcT:[
-    ['MC_TBD1','Giao diện gợi ý của ReFashion dường như được thiết kế để cung cấp thông tin minh bạch ngay từ đầu.'],
+    ['MC_TBD1','Giao diện gợi ý của <strong>ReFashion</strong> dường như được thiết kế để cung cấp thông tin minh bạch ngay từ đầu.'],
     ['MC_TBD2','Thông tin giải thích hoặc Hộ chiếu sản phẩm số DPP dường như là một phần không thể thiếu của hệ thống gợi ý thời trang này.'],
     ['MC_TBD3','Hệ thống cung cấp thông tin rõ ràng về các sản phẩm và dữ liệu nguồn gốc.'],
     ['MC_TBD4','Hệ thống giải thích rõ lý do hoặc tiêu chí vì sao sản phẩm này phù hợp với tôi.'],
@@ -571,26 +571,26 @@ const ITEMS={
     ['MC_OF3','Các gợi ý thời trang từ hệ thống AI này đúng với những gì tôi mong muốn.']
   ],
   xai:[
-    ['XAI1','Tôi thấy phần giải thích của ReFashion dễ hiểu.'],
-    ['XAI2','Tôi nghĩ kết quả của ReFashion có thể giải thích được.']
+    ['XAI1','Tôi thấy phần giải thích của <strong>ReFashion</strong> dễ hiểu.'],
+    ['XAI2','Tôi nghĩ kết quả của <strong>ReFashion</strong> có thể giải thích được.']
   ],
   aip:[
-    ['AIP1','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion cung cấp các đề xuất mua sắm phù hợp với nhu cầu của tôi.'],
-    ['AIP2','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion cho phép tôi chọn các sản phẩm được thiết kế riêng cho mình.'],
-    ['AIP3','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion được tùy chỉnh theo nhu cầu của tôi.'],
-    ['AIP4','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý ReFashion thích nghi với hoàn cảnh của tôi.']
+    ['AIP1','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý <strong>ReFashion</strong> cung cấp các đề xuất mua sắm phù hợp với nhu cầu của tôi.'],
+    ['AIP2','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý <strong>ReFashion</strong> cho phép tôi chọn các sản phẩm được thiết kế riêng cho mình.'],
+    ['AIP3','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý <strong>ReFashion</strong> được tùy chỉnh theo nhu cầu của tôi.'],
+    ['AIP4','Tính năng cá nhân hóa bằng AI của hệ thống gợi ý <strong>ReFashion</strong> thích nghi với hoàn cảnh của tôi.']
   ],
   pt:[
     ['PT1','Ngoài thông tin cơ bản về sản phẩm (thành phần, nơi sản xuất, hạn sử dụng, ..), việc truy xuất nguồn gốc sản phẩm còn giúp nhận diện hàng giả.'],
     ['PT2','Thông tin về quy trình phân phối quần áo, bao gồm từng giai đoạn vận chuyển và cách xử lý sản phẩm.']
   ],
   ct:[
-    ['CT1','Hệ thống gợi ý thời trang tuần hoàn ReFashion là đáng tin cậy.'],
-    ['CT2','Tôi có thể tin tưởng vào những gợi ý thời trang từ hệ thống ReFashion.']
+    ['CT1','Hệ thống gợi ý thời trang tuần hoàn <strong>ReFashion</strong> là đáng tin cậy.'],
+    ['CT2','Tôi có thể tin tưởng vào những gợi ý thời trang từ hệ thống <strong>ReFashion</strong>.']
   ],
   pi:[
-    ['PI1','Tôi có ý định mua quần áo được gợi ý qua hệ thống AI trên nền tảng ReFashion.'],
-    ['PI2','Tôi sẵn lòng trả giá cao hơn cho các sản phẩm thời trang bền vững được gợi ý trên ReFashion so với các sản phẩm thông thường.']
+    ['PI1','Tôi có ý định mua quần áo được gợi ý qua hệ thống AI trên nền tảng <strong>ReFashion</strong>.'],
+    ['PI2','Tôi sẵn lòng trả giá cao hơn cho các sản phẩm thời trang bền vững được gợi ý trên <strong>ReFashion</strong> so với các sản phẩm thông thường.']
   ],
   ec:[
     ['EC1','Tôi rất quan tâm đến các vấn đề bảo vệ môi trường và thời trang bền vững.']
